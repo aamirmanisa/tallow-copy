@@ -83,7 +83,8 @@
 
       <div class="hero-actions">
         <a class="btn btn-primary" href="#install" data-od-id="cta-install">Install</a>
-        <a class="btn btn-ghost" href="https://github.com/aamirmanisa/tallow-copy" target="_blank" rel="noopener" data-od-id="cta-github">
+        <a class="btn btn-ghost" href="https://github.com/aamirmanisa/tallow-copy/releases/latest" target="_blank" rel="noopener" data-od-id="cta-download">Download</a>
+          <a class="btn btn-ghost" href="https://github.com/aamirmanisa/tallow-copy" target="_blank" rel="noopener" data-od-id="cta-github">
           View on GitHub
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5h5v5M19 5l-9 9"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
         </a>
@@ -155,20 +156,23 @@ cargo run --quiet --bin tallow -- copy src dst</code></pre>
             <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
             <pre><code class="language-bash">sudo apt install ./tallow-copy_0.1.0_amd64.deb</code></pre>
           </div>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_amd64.deb">tallow-copy_0.1.0_amd64.deb</a> (3.2 MB)</p>
           <p>Or, if you prefer: <code>sudo dpkg -i</code> followed by <code>sudo apt -f install</code>. Installing from a local path with <code>apt</code> is what pulls the dependencies in.</p>
           <p>Not for Arch-family systems. A <code>.deb</code> is a Debian package; on Arch, use the AppImage or build from source. (Verified the hard way: this project&rsquo;s own machine is CachyOS and has no <code>dpkg-deb</code>.)</p>
 
           <h3 id="install-linux-appimage">The AppImage &mdash; any distribution</h3>
           <div class="codeblock">
             <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
-            <pre><code class="language-bash">chmod +x Tallow_Copy-x86_64.AppImage
-./Tallow_Copy-x86_64.AppImage</code></pre>
+            <pre><code class="language-bash">chmod +x tallow-copy_0.1.0_amd64.AppImage
+./tallow-copy_0.1.0_amd64.AppImage</code></pre>
           </div>
-          <p>One file, no install, no dependencies to resolve. If the host lacks FUSE, run it with <code>APPIMAGE_EXTRACT_AND_RUN=1 ./Tallow_Copy-x86_64.AppImage</code>.</p>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_amd64.AppImage">tallow-copy_0.1.0_amd64.AppImage</a> (77.7 MB)</p>
+          <p>One file, no install, no dependencies to resolve. If the host lacks FUSE, run it with <code>APPIMAGE_EXTRACT_AND_RUN=1 ./tallow-copy_0.1.0_amd64.AppImage</code>.</p>
         </div>
 
         <div role="tabpanel" id="panel-macos" aria-labelledby="tab-macos" class="tabpanel" data-od-id="panel-macos" hidden>
           <h3 id="install-macos">macOS &mdash; CI artifact, unsigned</h3>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_x64.dmg">tallow-copy_0.1.0_x64.dmg</a> (3.0 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_aarch64.dmg">tallow-copy_0.1.0_aarch64.dmg</a> (3.0 MB)</p>
           <p>Built by CI from the same sources, and <strong>unsigned</strong>. macOS needs the quarantine attribute cleared, or a right-click Open:</p>
           <div class="codeblock">
             <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
@@ -178,6 +182,7 @@ cargo run --quiet --bin tallow -- copy src dst</code></pre>
 
         <div role="tabpanel" id="panel-windows" aria-labelledby="tab-windows" class="tabpanel" data-od-id="panel-windows" hidden>
           <h3 id="install-windows">Windows &mdash; CI artifact, unsigned</h3>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_x64_en-US.msi">tallow-copy_0.1.0_x64_en-US.msi</a> (3.1 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_x64-setup.exe">tallow-copy_0.1.0_x64-setup.exe</a> (2.0 MB)</p>
           <p>Built by CI from the same sources, and <strong>unsigned</strong>. Windows shows a SmartScreen warning; accept it to run.</p>
         </div>
       </div>
