@@ -1,6 +1,6 @@
 [package]
 name = "tallow-copy"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tallow Copy desktop shell"
 authors = ["Tallow Contributors"]
 edition = "2021"
