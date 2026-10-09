@@ -344,11 +344,12 @@ Transfer.hash(path)</code></pre>
             <tr><td>Warm no-op, nothing to copy</td><td>0.052&nbsp;s</td><td>0.103&nbsp;s</td></tr>
             <tr><td>1% of files changed and 1% deleted</td><td>0.120&nbsp;s</td><td>0.152&nbsp;s</td></tr>
             <tr><td>Hash verification, both sides re-read (391&nbsp;MB)</td><td>2.256&nbsp;s</td><td>0.305&nbsp;s</td></tr>
+            <tr><td>2&nbsp;GiB clone-free byte copy (both to tmpfs)</td><td>4.949&nbsp;s &mdash; 414&nbsp;MB/s</td><td>8.698&nbsp;s &mdash; 235&nbsp;MB/s</td></tr>
             <tr><td>4&nbsp;GiB of large files (clone-assisted on btrfs)</td><td>0.038&nbsp;s</td><td>5.452&nbsp;s</td></tr>
           </tbody>
         </table>
       </div>
-      <p><strong>Read the last row with care.</strong> On a copy-on-write filesystem the engine clones, so 4&nbsp;GiB is O(1) rather than a transfer &mdash; it beats rsync for that reason, not on throughput. The control: the same copy forced to write real bytes (<code>cp --reflink=never</code>) took 3.112&nbsp;s, 259&times; slower than the clone. Against a target that cannot clone &mdash; ext4, NTFS, a NAS over CIFS &mdash; no clone path exists.</p>
+      <p><strong>Read the clone-assisted row with care.</strong> On a copy-on-write filesystem the engine clones, so 4&nbsp;GiB is O(1) rather than a transfer &mdash; it beats rsync for that reason, not on throughput. The control: the same copy forced to write real bytes (<code>cp --reflink=never</code>) took 3.112&nbsp;s, 259&times; slower than the clone. Against a target that cannot clone &mdash; ext4, NTFS, a NAS over CIFS &mdash; no clone path exists, so that case was measured separately with both tools writing real bytes to tmpfs: <strong>414 MB/s against rsync's 235</strong>, and 485&nbsp;MB/s at four threads.</p>
       <p><strong>Verification is the one row rsync wins</strong>, by roughly 7&times;. Recorded as measured. <strong>Robocopy is not measured:</strong> it is Windows-only, and running it under Wine would measure Wine.</p>
 
       <h3 id="bench-smoke">Engine performance smoke (tiny dataset)</h3>

@@ -83,6 +83,7 @@ A same-length file whose mtime was preserved is reported as *in sync* under `siz
 | io_uring buffered, 1 thread | 2681-3765 MiB/s across 64K-16M |
 | Vs `rsync -a`, 20k small files (clone-free, both to tmpfs) | 691 vs 319 MB/s - **2.16x faster** |
 | Vs `rsync -a`, warm no-op / 1% changed+deleted | 0.052 vs 0.103 s / 0.120 vs 0.152 s |
+| Vs `rsync -a`, 2 GiB clone-free byte copy (both to tmpfs) | 414 vs 235 MB/s - **1.76x faster** (485 MB/s at `-j 4`) |
 | Vs `rsync -a`, 4 GiB large files | 0.038 vs 5.452 s - **a clone, not throughput** |
 | Vs `rsync -rc`, hash verification of 391 MB | 2.256 vs 0.305 s - **rsync ~7x faster** |
 | Robocopy | **not measured** - Windows-only |

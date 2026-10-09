@@ -100,11 +100,29 @@ Speed figures here are for copies that were verified, not assumed:
 - all four 1 GiB blobs are byte-identical under `cmp`
 - the incremental destinations were verified after the mutations
 
+## Clone-free byte copy of 2 GiB (both tools to tmpfs)
+
+No reflink is possible on tmpfs and both tools write real bytes into an identical target, so this
+is the clone-free head-to-head. The target is RAM-backed, so these figures measure per-byte
+overhead rather than disk speed. Every destination was compared byte-for-byte afterwards.
+
+| Command | Median | Throughput |
+| --- | --- | --- |
+| `tallow delta-sync -j 4` | 4.226 s | **485 MB/s** |
+| `tallow copy` | 4.949 s | **414 MB/s** |
+| `rsync -a` | 8.698 s | 235 MB/s |
+| `cp -a --reflink=never` (reference) | 7.671 s | 267 MB/s |
+
+Single-threaded, the engine is **1.76x** rsync here; at four threads, **2.06x**. All four
+destinations were byte-identical to the source (`cmp`). This is the row that answers "how fast
+is it when it cannot clone" — the one the earlier version of this document left open.
+
 ## Not measured
 
 - **Robocopy** — Windows-only. Running it under Wine would measure Wine.
 - **PowerShell `Copy-Item`** — same reason.
-- **Byte throughput at 4 GiB** — every destination available on the measuring machine
-  supports cloning, so the engine's clone-free large-file path could not be isolated.
+- **Byte throughput of a 4 GiB disk-to-disk copy** — every disk target available on the measuring
+  machine supports cloning, so that exact shape could not be isolated. The clone-free path was
+  instead measured on tmpfs at 2 GiB, above.
 - **Cold cache** — dropping the page cache requires root, which the measuring session did
   not have. Every row is warm-source.
