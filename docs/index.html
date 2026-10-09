@@ -141,19 +141,35 @@
       </header>
 
       <div class="prose">
-        <p>The CLI is one file &mdash; download it, <code>chmod +x</code> it, and run <code>tallow copy</code>. It is the same <code>tallow</code> binary whose copy surface this site documents, built against <code>glibc 2.35</code>.</p> <p>The desktop app is a webview app: WebKitGTK on Linux, WebView2 on Windows (present on Windows&nbsp;10+), WKWebView on macOS. On Linux the deb declares exactly two dependencies &mdash; <code>libwebkit2gtk-4.1-0</code> and <code>libgtk-3-0</code> &mdash; and apt resolves them for you. The engine has no system dependencies at all.</p>
+        <p>The CLI is one file &mdash; download it, <code>chmod +x</code> it, and run <code>tallow copy</code>. It is the same <code>tallow</code> binary whose copy surface this site documents, with the Linux build linked against <code>glibc 2.35</code>.</p> <p>The desktop app is a webview app: WebKitGTK on Linux, WebView2 on Windows (present on Windows&nbsp;10+), WKWebView on macOS. On Linux the deb declares exactly two dependencies &mdash; <code>libwebkit2gtk-4.1-0</code> and <code>libgtk-3-0</code> &mdash; and apt resolves them for you. The engine has no system dependencies at all.</p>
       </div>
 
-      <h3 id="install-cli">The CLI &mdash; Linux x86_64</h3>
+      <h3 id="install-cli">The CLI &mdash; Linux, macOS and Windows</h3>
       <div class="codeblock">
         <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
-        <pre><code class="language-bash">curl -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow_0.4.0_x86_64-linux-glibc2.35
+        <pre><code class="language-bash"># Linux x86_64 (glibc 2.35+)
+curl -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-linux-glibc2.35
 chmod +x tallow_0.4.0_x86_64-linux-glibc2.35
 mv tallow_0.4.0_x86_64-linux-glibc2.35 tallow
-tallow copy src dst</code></pre>
+./tallow copy src dst</code></pre>
       </div>
-      <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow_0.4.0_x86_64-linux-glibc2.35">tallow_0.4.0_x86_64-linux-glibc2.35</a> (46.5 MB)</p>
-      <p>Runs on Ubuntu&nbsp;22.04 and newer (glibc 2.35+); it needs <code>liblzma5</code> and <code>libbz2-1.0</code>, both base packages on Debian-family systems.</p>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-bash"># macOS - swap aarch64 for x86_64 on Intel
+curl -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_aarch64-apple-darwin
+chmod +x tallow_0.4.0_aarch64-apple-darwin
+mv tallow_0.4.0_aarch64-apple-darwin tallow
+xattr -dr com.apple.quarantine ./tallow   # macOS quarantines downloads
+./tallow copy src dst</code></pre>
+      </div>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>powershell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-powershell"># Windows x86_64 - SmartScreen will warn, nothing here is signed
+curl.exe -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-pc-windows-msvc.exe
+.\tallow_0.4.0_x86_64-pc-windows-msvc.exe copy src dst</code></pre>
+      </div>
+      <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-linux-glibc2.35">Linux x86_64</a> (49.9 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_aarch64-apple-darwin">macOS arm64</a> (39.0 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-apple-darwin">macOS Intel</a> (45.8 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-pc-windows-msvc.exe">Windows x86_64</a> (43.9 MB)</p>
+      <p>Each binary is built on its own native runner and smoke-tested there &mdash; <code>--version</code>, then a real byte-compared copy &mdash; before upload. The Linux build runs on Ubuntu&nbsp;22.04 and newer (glibc 2.35+) and needs <code>liblzma5</code> and <code>libbz2-1.0</code>, both base packages on Debian-family systems. On Windows the browser-automation path is unavailable, because it passes file descriptors to the browser: <code>copy</code>, <code>delta-sync</code> and <code>verify-transfer</code> work, the browser commands report a clear error. GitHub strips the executable bit, so <code>chmod +x</code> is needed on Linux and macOS.</p>
 
       <div class="tabs" data-od-id="install-tabs">
         <div class="tablist" role="tablist" aria-label="Operating system">

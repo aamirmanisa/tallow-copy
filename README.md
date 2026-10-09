@@ -24,14 +24,34 @@ One implementation of byte movement, content hashing and the skip/verify verdict
 ## Quickstart
 
 The CLI is Tallow's copy surface - `tallow copy <SRC> <DST>`, with `delta-sync` and
-`verify-transfer` beside it. On Linux x86_64, from the release:
+`verify-transfer` beside it. Download the build for your platform, `chmod +x` it (GitHub strips
+the executable bit) and run it:
 
 ```bash
-curl -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow_0.4.0_x86_64-linux-glibc2.35
-chmod +x tallow_0.4.0_x86_64-linux-glibc2.35
-mv tallow_0.4.0_x86_64-linux-glibc2.35 tallow
-tallow copy src dst
+# Linux x86_64 (glibc 2.35+)
+curl -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-linux-glibc2.35
+chmod +x tallow_0.4.0_x86_64-linux-glibc2.35 && mv tallow_0.4.0_x86_64-linux-glibc2.35 tallow
+./tallow copy src dst
 ```
+
+```bash
+# macOS - swap aarch64 for x86_64 on Intel
+curl -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_aarch64-apple-darwin
+chmod +x tallow_0.4.0_aarch64-apple-darwin && mv tallow_0.4.0_aarch64-apple-darwin tallow
+xattr -dr com.apple.quarantine ./tallow   # macOS quarantines downloaded binaries
+./tallow copy src dst
+```
+
+```powershell
+# Windows x86_64 (PowerShell) - SmartScreen will warn, nothing here is signed
+curl.exe -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-pc-windows-msvc.exe
+.\tallow_0.4.0_x86_64-pc-windows-msvc.exe copy src dst
+```
+
+Each binary is built on its own native runner and smoke-tested there (`--version`, then a real
+byte-compared copy) before upload. The browser-automation path is Unix-only - it passes file
+descriptors to the browser - so on Windows `copy`, `delta-sync` and `verify-transfer` work while
+the browser commands report a clear error.
 
 The desktop app is a separate package:
 
@@ -45,13 +65,16 @@ CI builds and bundles every platform on each push. Signed by nobody — see [Sig
 
 | Platform | Files |
 |---|---|
-| **CLI**, Linux x86_64 | [`tallow_0.4.0_x86_64-linux-glibc2.35`](https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow_0.4.0_x86_64-linux-glibc2.35) &mdash; the `tallow` CLI itself; glibc 2.35+, needs `liblzma5` and `libbz2-1.0` |
-| Linux x86_64 | [`tallow-copy_0.1.1_amd64.deb`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.1_amd64.AppImage`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
-| Windows x86_64 | [`tallow-copy_0.1.1_x64_en-US.msi`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.1_x64-setup.exe`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
-| macOS Intel | [`tallow-copy_0.1.1_x64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
-| macOS Apple silicon | [`tallow-copy_0.1.1_aarch64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
+| **CLI**, Linux x86_64 | [`tallow_0.4.0_x86_64-linux-glibc2.35`](https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-linux-glibc2.35) &mdash; 49.9 MB; glibc 2.35+, needs `liblzma5` and `libbz2-1.0` |
+| **CLI**, macOS Apple silicon | [`tallow_0.4.0_aarch64-apple-darwin`](https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_aarch64-apple-darwin) &mdash; 39.0 MB |
+| **CLI**, macOS Intel | [`tallow_0.4.0_x86_64-apple-darwin`](https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-apple-darwin) &mdash; 45.8 MB |
+| **CLI**, Windows x86_64 | [`tallow_0.4.0_x86_64-pc-windows-msvc.exe`](https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.2/tallow_0.4.0_x86_64-pc-windows-msvc.exe) &mdash; 43.9 MB; copy/verify commands work, the browser path needs Unix fd passing |
+| Linux x86_64 | [`tallow-copy_0.1.1_amd64.deb`](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1) · [`tallow-copy_0.1.1_amd64.AppImage`](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1) |
+| Windows x86_64 | [`tallow-copy_0.1.1_x64_en-US.msi`](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1) · [`tallow-copy_0.1.1_x64-setup.exe`](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1) |
+| macOS Intel | [`tallow-copy_0.1.1_x64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1) · `.app.tar.gz` |
+| macOS Apple silicon | [`tallow-copy_0.1.1_aarch64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1) · `.app.tar.gz` |
 
-Every asset carries a SHA-256 in its [release notes](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1). The AppImage needs FUSE; without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.
+Every asset carries a SHA-256 in its release notes — the four CLI binaries in [v0.1.2](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.2), the app bundles in [v0.1.1](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1). The AppImage needs FUSE; without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.
 
 ## Command reference
 
