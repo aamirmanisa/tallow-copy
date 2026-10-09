@@ -1,0 +1,77 @@
+name: Tallow Copy build
+
+# One workflow, three operating systems. Tauri cannot produce Windows or macOS bundles from Linux:
+# the Windows installer tooling is Windows-only, and macOS needs Apple's SDK and codesign, neither of
+# which can be satisfied here. Cross-checking the Rust from this machine fails earlier still - blake3's
+# build script compiles C for the target and there is no cross C toolchain installed - so each platform's
+# build has to happen on that platform. GitHub's runners are that platform.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/tallow-copy/**"
+      - "crates/tallow-copy-engine/**"
+      - ".github/workflows/tallow-copy-build.yml"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            bundles: deb,appimage
+          - os: windows-latest
+            bundles: msi,nsis
+          # arm64 and Intel Macs need separate builds: Tauri cannot cross-compile a universal binary
+          # without both Rust targets and the SDK, and one runner is one architecture.
+          - os: macos-latest
+            bundles: app,dmg
+          - os: macos-13
+            bundles: app,dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/tallow-copy/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # The UI is a webview: WebKitGTK on Linux, WebView2 on Windows (present on Windows 10+), WKWebView
+      # on macOS. Only Linux needs packages installed.
+      - name: Linux system dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libfuse2
+
+      - name: Install frontend dependencies
+        working-directory: apps/tallow-copy
+        run: npm ci
+
+      # Use --bundles rather than the manifest's "all" so a broken bundler on one platform cannot fail
+      # the others, and so the artifact set is stated here rather than inferred.
+      - name: Build bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/tallow-copy
+          args: --bundles ${{ matrix.bundles }}
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: tallow-copy-${{ matrix.os }}
+          if-no-files-found: error
+          path: apps/tallow-copy/src-tauri/target/release/bundle/**
+
+# Not signed. Windows installers will warn with SmartScreen and macOS builds need
+# `xattr -dr com.apple.quarantine` or a right-click Open. Proper signing needs a Windows code-signing
+# certificate and an Apple Developer ID; until those exist, these are the artifacts an operator can run
+# after accepting the warning, and no more should be claimed for them.

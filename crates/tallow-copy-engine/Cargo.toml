@@ -1,0 +1,16 @@
+[package]
+name = "tallow-copy-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Standalone planning and execution engine for Tallow Copy"
+license = "MIT"
+
+[dependencies]
+blake3 = "1.8"
+filetime = "0.2"
+# SEEK_DATA/SEEK_HOLE for hole-preserving copies on filesystems whose kernel copy path
+# materialises holes (measured on NTFS via ntfs-3g).
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3.26"

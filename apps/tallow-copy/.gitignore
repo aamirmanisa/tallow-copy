@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.npm-cache/
+src-tauri/target/
+test-results/
+playwright-report/
+*.log
+dist-tauri/
+playwright-results-*/
+/tallow-copy-task*.png

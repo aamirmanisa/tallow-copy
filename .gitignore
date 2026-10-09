@@ -1,0 +1,13 @@
+# build output - the CI builds the frontend and the crates from source
+target/
+node_modules/
+dist/
+dist-tauri/
+test-results/
+playwright-report/
+
+# bundles, when built locally
+*.deb
+*.AppImage
+*.msi
+*.dmg
