@@ -1,61 +1,120 @@
+<div align="center">
+
 # Tallow Copy
 
-A native copy engine, the CLI that drives it, and the desktop app built on both.
+A native copy engine in Rust, a CLI that drives it, and a desktop app built on both.
 
-- `crates/tallow-copy-engine/` - the engine. Standalone: blake3, filetime and libc, nothing else.
-  It plans and executes copies, mirrors and verifications, and is shared by the CLI, the Tallow
-  scripting surface and the app, so a skip or verify verdict cannot differ between them.
-- `apps/tallow-copy/` - the Tauri desktop app (its own README has the details).
-- `docs/` - the engine architecture, the benchmark protocol and the audits, including the ones that
-  found the gaps this repository has since closed.
+[![version](https://img.shields.io/badge/version-0.1.0-813a32)](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.0)
+![license](https://img.shields.io/badge/license-MIT-6b7280)
+![bundles](https://img.shields.io/badge/bundles-linux%20%C2%B7%20windows%20%C2%B7%20macos%20arm64%20%26%20intel-6b7280)
+[![build](https://github.com/aamirmanisa/tallow-copy/actions/workflows/tallow-copy-build.yml/badge.svg)](https://github.com/aamirmanisa/tallow-copy/actions/workflows/tallow-copy-build.yml)
 
-## Documentation
+**[Documentation](https://aamirmanisa.github.io/tallow-copy/)** &nbsp;·&nbsp; **[Download](https://github.com/aamirmanisa/tallow-copy/releases/latest)** &nbsp;·&nbsp; [Command reference](https://aamirmanisa.github.io/tallow-copy/#commands) &nbsp;·&nbsp; [Benchmarks](https://aamirmanisa.github.io/tallow-copy/#benchmarks)
 
-**https://aamirmanisa.github.io/tallow-copy/** - install instructions for every platform, the full
-command reference, the benchmark results and the numbers behind them.
+<img src="docs/assets/site-hero.png" alt="The Tallow Copy documentation site" width="880">
 
-## Building
+</div>
 
-Engine and CLI-side use:
+---
 
-    cargo build --release -p tallow-copy-engine
+One implementation of byte movement, content hashing and the skip/verify verdicts is shared by the CLI, the Tallow scripting surface and the app — so *"the bytes arrived"* cannot differ between them. The engine is standalone: `blake3`, `filetime`, `libc`, nothing else.
 
-The desktop app:
+## Quickstart
 
-    cd apps/tallow-copy
-    npm ci
-    npm run build
-    npx tauri build          # bundles every target this platform supports
+From a checkout:
 
-Linux needs `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, `libfuse2` and `patchelf`. The engine itself
-builds anywhere Rust does.
+```bash
+cargo build --release -p tallow-copy-engine
+cargo run --quiet --bin tallow -- copy src dst
+```
 
-## Downloads
+On Debian or Ubuntu, from the release:
 
-CI builds and bundles the app on every platform for each push (`.github/workflows/tallow-copy-build.yml`):
+```bash
+sudo apt install ./tallow-copy_0.1.0_amd64.deb
+```
 
-| Platform | Bundles |
+## Download
+
+CI builds and bundles every platform on each push. Signed by nobody — see [Signing](#signing).
+
+| Platform | Files |
 |---|---|
-| Linux (`ubuntu-22.04`) | `.deb`, `.AppImage` |
-| Windows (`windows-latest`) | `.msi`, NSIS `-setup.exe` |
-| macOS arm64 (`macos-latest`) | `.app`, `.dmg` |
-| macOS Intel (`macos-15-intel`) | `.app`, `.dmg` |
+| Linux x86_64 | [`tallow-copy_0.1.0_amd64.deb`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.0_amd64.AppImage`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
+| Windows x86_64 | [`tallow-copy_0.1.0_x64_en-US.msi`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.0_x64-setup.exe`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
+| macOS Intel | [`tallow-copy_0.1.0_x64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
+| macOS Apple silicon | [`tallow-copy_0.1.0_aarch64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
 
-The bundles are attached to each release; the raw artifacts are also on the workflow run. They are
-**unsigned**, so macOS Gatekeeper and Windows SmartScreen warn on first launch.
+Every asset carries a SHA-256 in its [release notes](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.0). The AppImage needs FUSE; without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.
 
-## Tests
+## Command reference
 
-    cargo test -p tallow-copy-engine          # engine
-    cd apps/tallow-copy && npm run test:visual # UI layout, needs a browser
+Verified against the live binary. From a checkout, replace `tallow` with `cargo run --quiet --bin tallow --`.
+
+| Command | What it does |
+|---|---|
+| `tallow copy <SRC> <DST>` | Copy missing or changed entries. Recursive, read-only on the source. `--resume` continues an interrupted file from its deterministic `.name.tallow-partial` sibling. |
+| `tallow delta-sync <SRC> <DST>` | Stateful one-way reconciler — a different capability from the stateless copier. Keeps SQLite state to decide what changed. |
+| `tallow verify-transfer --source <SRC> --target <DST>` | Read-only comparison: what is missing, what differs, what is extra. Writes nothing. |
+| `tallow manifest-create` | Write a manifest — `path<TAB>size<TAB>blake3` behind `# nixe manifest v1` — so a tree can be verified on a machine that never had the source. |
+| `tallow manifest-verify --manifest <M> <ROOT>` | Verify a tree against a manifest. `extra` entries are reported and **never deleted**. |
+
+## Verification, not trust
+
+| Verify mode | What it proves |
+|---|---|
+| `none` | Nothing. The copy is attempted. |
+| `size` | Size + mtime. Cheap, and honest about what it does not check. |
+| `sampled_hash` | Hashes a sample rather than the whole tree. |
+| `full_hash` | Hashes both sides. |
+| `read_after_write` | Reads back what it wrote. |
+| `manifest` | Compares against a manifest from `manifest-create`. |
+
+A same-length file whose mtime was preserved is reported as *in sync* under `size` and as a difference under `hash` — measured, not asserted. `--verify hash` on `verify-transfer` reads both sides.
 
 ## Benchmarks
 
-`docs/benchmarks/copy-benchmark-protocol.md` is the protocol; the numbers in it were measured on the
-machine named there and are not portable claims. The engine's own perf smoke:
+| Case | Result |
+|---|---|
+| Local copy smoke, 32 MiB | 542.9 MB/s |
+| CIFS write / read | 43.6 / 50.9-55.3 MB/s (no scaling with streams) |
+| CIFS, 8 threads vs 1 | about 26% slower at 8 |
+| Large local files, 8 threads vs 1 | 581 vs 3556 MiB/s |
+| io_uring buffered, 1 thread | 2681-3765 MiB/s across 64K-16M |
 
-    cargo test -p tallow-copy-engine --test perf_copy_engine -- --ignored --nocapture
+Measured on the machine named in [`docs/benchmarks/`](docs/benchmarks/) — provenance, not portable claims. Thread count is derived from the tree and the path class rather than the core count: `-j 0` asks the engine to choose.
+
+## Installation notes
+
+- **Linux, deb** — declares exactly two dependencies, `libwebkit2gtk-4.1-0` and `libgtk-3-0`; apt resolves them. Not for Arch-family systems — a `.deb` is a Debian package; use the AppImage or build from source.
+- **macOS** — unsigned; clear the quarantine attribute (`xattr -dr com.apple.quarantine "Tallow Copy.app"`) or right-click Open.
+- **Windows** — unsigned; SmartScreen warns.
+- **Headless servers** — you want the engine, not the window. Copy the `tallow` binary plus your `.tl` scripts and you have the same engine behind `tallow copy`, `delta-sync`, `verify-transfer` and the manifest commands. This repository's own nightly 45 GB NAS push runs that way, as a `.tl` script on a timer.
+
+### Signing
+
+The bundles are **unsigned**. Proper signing needs a code-signing certificate and an Apple Developer ID; until those exist these are artifacts you can run after accepting the warning, and nothing more should be claimed for them.
+
+## Build and test
+
+```bash
+cargo build --release -p tallow-copy-engine   # the engine, standalone
+cargo test  -p tallow-copy-engine             # engine tests
+
+cd apps/tallow-copy                            # the desktop app
+npm ci && npm run build
+npx tauri build                                # bundles every target this platform supports
+npm run test:visual                            # UI layout, needs a browser
+```
+
+Linux needs `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, `libfuse2` and `patchelf`. The engine itself builds anywhere Rust does.
+
+## Layout
+
+- [`crates/tallow-copy-engine/`](crates/tallow-copy-engine) — the engine. Standalone: `blake3`, `filetime` and `libc`, nothing else.
+- [`apps/tallow-copy/`](apps/tallow-copy) — the Tauri desktop app.
+- [`docs/`](docs) — the [documentation site](https://aamirmanisa.github.io/tallow-copy/), plus the engine architecture, the benchmark protocol and the audits that found the gaps this repository has since closed.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT — see [LICENSE](LICENSE).
