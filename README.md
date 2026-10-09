@@ -9,6 +9,11 @@ A native copy engine, the CLI that drives it, and the desktop app built on both.
 - `docs/` - the engine architecture, the benchmark protocol and the audits, including the ones that
   found the gaps this repository has since closed.
 
+## Documentation
+
+**https://aamirmanisa.github.io/tallow-copy/** - install instructions for every platform, the full
+command reference, the benchmark results and the numbers behind them.
+
 ## Building
 
 Engine and CLI-side use:
@@ -20,10 +25,24 @@ The desktop app:
     cd apps/tallow-copy
     npm ci
     npm run build
-    npx tauri build          # deb + AppImage on Linux
+    npx tauri build          # bundles every target this platform supports
 
 Linux needs `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, `libfuse2` and `patchelf`. The engine itself
 builds anywhere Rust does.
+
+## Downloads
+
+CI builds and bundles the app on every platform for each push (`.github/workflows/tallow-copy-build.yml`):
+
+| Platform | Bundles |
+|---|---|
+| Linux (`ubuntu-22.04`) | `.deb`, `.AppImage` |
+| Windows (`windows-latest`) | `.msi`, NSIS `-setup.exe` |
+| macOS arm64 (`macos-latest`) | `.app`, `.dmg` |
+| macOS Intel (`macos-15-intel`) | `.app`, `.dmg` |
+
+The bundles are attached to each release; the raw artifacts are also on the workflow run. They are
+**unsigned**, so macOS Gatekeeper and Windows SmartScreen warn on first launch.
 
 ## Tests
 
