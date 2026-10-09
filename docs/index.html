@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tallow Copy — Documentation</title>
+  <meta name="description" content="Documentation for Tallow Copy: a stateless copy engine in Rust, the CLI that drives it, and the desktop app built on both. Install, command reference, benchmarks, troubleshooting and contributing.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" data-od-id="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#top">
+        <span class="brand-name">Tallow Copy</span>
+        <span class="brand-version">0.1.0</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Sections">
+        <a href="#install">Install</a>
+        <a href="#commands">Commands</a>
+        <a href="#benchmarks">Benchmarks</a>
+        <a href="#faq">FAQ</a>
+        <a href="#advanced">Advanced</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#contributing">Contributing</a>
+        <a href="#license">License</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="search-trigger" id="search-toggle" aria-label="Search documentation" aria-haspopup="dialog" aria-expanded="false" aria-controls="search-dialog" data-od-id="search-trigger">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+          <span class="search-trigger-label">Search docs</span>
+          <kbd class="kbd">Ctrl K</kbd>
+        </button>
+        <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false" aria-controls="mobile-nav">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav id="mobile-nav" class="mobile-nav" aria-label="Sections" hidden>
+      <a href="#install">Install</a>
+      <a href="#commands">Commands</a>
+      <a href="#benchmarks">Benchmarks</a>
+      <a href="#faq">FAQ</a>
+      <a href="#advanced">Advanced</a>
+      <a href="#changelog">Changelog</a>
+      <a href="#contributing">Contributing</a>
+      <a href="#license">License</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <div class="layout">
+      <div class="content">
+
+      <details class="toc-mobile" data-od-id="toc-mobile">
+        <summary>On this page</summary>
+        <nav aria-label="On this page">
+          <a href="#install">Install</a>
+          <a href="#commands">Commands</a>
+          <a href="#benchmarks">Benchmarks</a>
+          <a href="#faq">FAQ</a>
+          <a href="#advanced">Advanced</a>
+          <a href="#changelog">Changelog</a>
+          <a href="#contributing">Contributing</a>
+          <a href="#license">License</a>
+        </nav>
+      </details>
+
+    <!-- ══════════════ HERO ══════════════ -->
+    <section id="top" class="hero" data-od-id="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">Documentation</p>
+      <h1 id="hero-title">Tallow Copy</h1>
+      <p class="lead">A native copy engine in Rust, a CLI that drives it, and a desktop app built on both. One implementation of byte movement, content hashing and the skip/verify verdicts is shared by the CLI, the Tallow scripting surface and the app &mdash; so &ldquo;the bytes arrived&rdquo; cannot differ between them.</p>
+
+      <p class="hero-meta">
+        MIT licensed &middot; engine depends only on <code>blake3</code>, <code>filetime</code>, <code>libc</code>
+      </p>
+
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#install" data-od-id="cta-install">Install</a>
+        <a class="btn btn-ghost" href="https://github.com/aamirmanisa/tallow-copy" target="_blank" rel="noopener" data-od-id="cta-github">
+          View on GitHub
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5h5v5M19 5l-9 9"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+        </a>
+      </div>
+
+      <figure class="hero-command" data-od-id="hero-command">
+        <figcaption class="codeblock-head">
+          <span>quickstart &middot; from a checkout</span>
+          <button type="button" class="copy-btn" aria-label="Copy quickstart to clipboard"><span class="copy-label">Copy</span></button>
+        </figcaption>
+        <pre><code class="language-bash">cargo build --release -p tallow-copy-engine
+cargo run --quiet --bin tallow -- copy src dst</code></pre>
+      </figure>
+
+      <ul class="capabilities" data-od-id="hero-capabilities">
+        <li class="capability" data-od-id="capability-one-verdict">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.2 2.7 2.7 5.3-5.6"/></svg>
+          <div>
+            <p class="cap-title">One verdict, three surfaces</p>
+            <p>The CLI, the <code>.tl</code> scripting surface and the desktop app share a single implementation of byte movement, hashing and the skip/verify verdicts. The docs record a lazy-hash defect that once shipped in two copies at the same time and had to be fixed twice &mdash; which is why the duplication was removed.</p>
+          </div>
+        </li>
+        <li class="capability" data-od-id="capability-stateless">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 20.2 7.2v9.6L12 21.5 3.8 16.8V7.2Z"/><circle cx="12" cy="12" r="2.4"/></svg>
+          <div>
+            <p class="cap-title">Stateless by default</p>
+            <p>The engine is standalone by design &mdash; <code>blake3</code>, <code>filetime</code> and <code>libc</code>, nothing from the wider <code>tallow</code> crate. Copying is recursive and read-only on the source.</p>
+          </div>
+        </li>
+        <li class="capability" data-od-id="capability-verification">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 11.5l2.2 2.2 3.8-4.4M9 16h6"/></svg>
+          <div>
+            <p class="cap-title">Verification, not trust</p>
+            <p><code>verify-transfer</code> compares without writing; manifests let a machine that never had the source check a copy; <code>audit-transfers</code> shows the log. An audit compares &mdash; it never writes.</p>
+          </div>
+        </li>
+        <li class="capability" data-od-id="capability-parallelism">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6.5h11m-2-2 2 2-2 2"/><path d="M2 12.5h17m-2-2 2 2-2 2"/><path d="M2 18.5h8m-2-2 2 2-2 2"/></svg>
+          <div>
+            <p class="cap-title">Parallelism derived, not assumed</p>
+            <p>The worker count is derived from the tree and the path class, not the core count. Measured: on a CIFS target, 8 threads was about 26% slower than 1. <code>-j 0</code> asks the engine to choose.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+    <div class="hero-rule" aria-hidden="true"></div>
+
+    <!-- ══════════════ 01 INSTALL ══════════════ -->
+    <section id="install" class="section" data-od-id="section-install" aria-labelledby="install-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">01</p>
+        <h2 id="install-title">Install</h2>
+      </header>
+
+      <div class="prose">
+        <p>The desktop app is a webview app: WebKitGTK on Linux, WebView2 on Windows (present on Windows&nbsp;10+), WKWebView on macOS. On Linux the deb declares exactly two dependencies &mdash; <code>libwebkit2gtk-4.1-0</code> and <code>libgtk-3-0</code> &mdash; and apt resolves them for you. The engine has no system dependencies at all.</p>
+      </div>
+
+      <div class="tabs" data-od-id="install-tabs">
+        <div class="tablist" role="tablist" aria-label="Operating system">
+          <button type="button" role="tab" id="tab-linux" aria-controls="panel-linux" aria-selected="true" tabindex="0">Linux</button>
+          <button type="button" role="tab" id="tab-macos" aria-controls="panel-macos" aria-selected="false" tabindex="-1">macOS</button>
+          <button type="button" role="tab" id="tab-windows" aria-controls="panel-windows" aria-selected="false" tabindex="-1">Windows</button>
+        </div>
+
+        <div role="tabpanel" id="panel-linux" aria-labelledby="tab-linux" class="tabpanel" data-od-id="panel-linux">
+          <h3 id="install-linux-deb">The deb &mdash; Debian / Ubuntu</h3>
+          <div class="codeblock">
+            <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+            <pre><code class="language-bash">sudo apt install ./tallow-copy_0.1.0_amd64.deb</code></pre>
+          </div>
+          <p>Or, if you prefer: <code>sudo dpkg -i</code> followed by <code>sudo apt -f install</code>. Installing from a local path with <code>apt</code> is what pulls the dependencies in.</p>
+          <p>Not for Arch-family systems. A <code>.deb</code> is a Debian package; on Arch, use the AppImage or build from source. (Verified the hard way: this project&rsquo;s own machine is CachyOS and has no <code>dpkg-deb</code>.)</p>
+
+          <h3 id="install-linux-appimage">The AppImage &mdash; any distribution</h3>
+          <div class="codeblock">
+            <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+            <pre><code class="language-bash">chmod +x Tallow_Copy-x86_64.AppImage
+./Tallow_Copy-x86_64.AppImage</code></pre>
+          </div>
+          <p>One file, no install, no dependencies to resolve. If the host lacks FUSE, run it with <code>APPIMAGE_EXTRACT_AND_RUN=1 ./Tallow_Copy-x86_64.AppImage</code>.</p>
+        </div>
+
+        <div role="tabpanel" id="panel-macos" aria-labelledby="tab-macos" class="tabpanel" data-od-id="panel-macos" hidden>
+          <h3 id="install-macos">macOS &mdash; CI artifact, unsigned</h3>
+          <p>Built by CI from the same sources, and <strong>unsigned</strong>. macOS needs the quarantine attribute cleared, or a right-click Open:</p>
+          <div class="codeblock">
+            <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+            <pre><code class="language-bash">xattr -dr com.apple.quarantine "Tallow Copy.app"</code></pre>
+          </div>
+        </div>
+
+        <div role="tabpanel" id="panel-windows" aria-labelledby="tab-windows" class="tabpanel" data-od-id="panel-windows" hidden>
+          <h3 id="install-windows">Windows &mdash; CI artifact, unsigned</h3>
+          <p>Built by CI from the same sources, and <strong>unsigned</strong>. Windows shows a SmartScreen warning; accept it to run.</p>
+        </div>
+      </div>
+
+      <aside class="note" data-od-id="note-signing">
+        <p>Proper signing needs a code-signing certificate and an Apple Developer ID; until those exist these are artifacts you can run after accepting the warning, and nothing more should be claimed for them.</p>
+      </aside>
+
+      <h3 id="install-source">Build from source</h3>
+      <p>Prerequisites: a stable Rust toolchain, Node 20 for the app, and on Linux the development packages <code>libwebkit2gtk-4.1-dev</code>, <code>libgtk-3-dev</code>, <code>libfuse2</code> and <code>patchelf</code>.</p>
+      <p>Engine and CLI-side use:</p>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-bash">cargo build --release -p tallow-copy-engine</code></pre>
+      </div>
+      <p>The desktop app:</p>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-bash">cd apps/tallow-copy
+npm ci
+npm run build
+npx tauri build</code></pre>
+      </div>
+      <p>Building the AppImage with Tauri&rsquo;s own invocation fails with <code>failed to run linuxdeploy</code>. That is a packaging-tool defect, not a problem with the application: Tauri pins a linuxdeploy whose bundled <code>strip</code> cannot read <code>.relr.dyn</code> sections that modern system libraries use. A current linuxdeploy handles them, so the bundle succeeds when that one is invoked directly against the staged AppDir, with the plugin directory pointed at Tauri&rsquo;s downloads. The deb path is unaffected.</p>
+
+      <h3 id="install-headless">Headless servers &mdash; use the CLI</h3>
+      <p>A server wants the engine, not the window. Copy the <code>tallow</code> binary plus your <code>.tl</code> scripts and you have the same engine: <code>tallow copy</code>, <code>tallow delta-sync</code>, <code>tallow verify-transfer</code>, <code>tallow manifest-create</code>, <code>tallow manifest-verify</code>. This is how the project&rsquo;s own nightly 45&nbsp;GB NAS push runs &mdash; a <code>.tl</code> script driven by a timer.</p>
+    </section>
+
+    <!-- ══════════════ 02 COMMANDS ══════════════ -->
+    <section id="commands" class="section" data-od-id="section-commands" aria-labelledby="commands-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">02</p>
+        <h2 id="commands-title">Command reference</h2>
+      </header>
+
+      <p class="section-lede">Every command below is Tallow Copy&rsquo;s, verified against the live binary. Run them from a checkout of the repo, or replace <code>cargo run --quiet --bin tallow --</code> with an installed <code>tallow</code> binary.</p>
+
+      <article class="command" id="cmd-copy" data-od-id="command-copy">
+        <h3><code>tallow copy</code></h3>
+        <p>Copy missing or changed source entries to a destination. Recursive. Read-only on the source.</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>syntax</span><button type="button" class="copy-btn" aria-label="Copy syntax to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow copy &lt;SRC&gt; &lt;DST&gt;</code></pre>
+        </div>
+        <p class="block-label">Example</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow copy /srv/data /mnt/backup/data</code></pre>
+        </div>
+        <p class="block-label">Flags</p>
+        <dl class="flags">
+          <div><dt><code>--resume</code></dt><dd>Continue each interrupted file from its deterministic partial sibling. Local paths only.</dd></div>
+          <div><dt><code>-q, --quiet</code></dt><dd>Suppress all non-error output.</dd></div>
+          <div><dt><code>-v, --verbose</code></dt><dd>Verbose output.</dd></div>
+          <div><dt><code>--no-color</code></dt><dd>Disable coloured output (env <code>NO_COLOR</code>).</dd></div>
+        </dl>
+        <aside class="note">
+          <p>The partial sibling is <code>.name.tallow-partial</code> beside the destination, which a resume run deliberately leaves behind on failure. A finished destination makes any partial stale, so it is ignored rather than spliced in.</p>
+        </aside>
+      </article>
+
+      <article class="command" id="cmd-delta-sync" data-od-id="command-delta-sync">
+        <h3><code>tallow delta-sync</code></h3>
+        <p>Delta sync between directories. This is the stateful one-way reconciler (it keeps SQLite state to decide what changed); it is a different capability from the stateless copier above.</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>syntax</span><button type="button" class="copy-btn" aria-label="Copy syntax to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow delta-sync &lt;SRC&gt; &lt;DST&gt;</code></pre>
+        </div>
+        <p class="block-label">Flags</p>
+        <dl class="flags">
+          <div><dt><code>-j 0</code></dt><dd>Ask the engine to choose the worker count. Thread count is derived from the tree and the path class rather than the core count. Measured: on a CIFS target, 8 threads was about 26% slower than 1, and on large local files 8 threads managed 581&nbsp;MiB/s against 3556&nbsp;MiB/s for a single thread.</dd></div>
+        </dl>
+      </article>
+
+      <article class="command" id="cmd-verify-transfer" data-od-id="command-verify-transfer">
+        <h3><code>tallow verify-transfer</code></h3>
+        <p>Compare a target against a source, read-only, and report what is missing, what differs and what is extra. Nothing is written.</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>syntax</span><button type="button" class="copy-btn" aria-label="Copy syntax to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow verify-transfer --source &lt;SOURCE&gt; --target &lt;TARGET&gt; [--verify &lt;MODE&gt;] [--json]</code></pre>
+        </div>
+        <p class="block-label">Example</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow verify-transfer --source /srv/data --target /mnt/backup/data --verify hash</code></pre>
+        </div>
+        <p class="block-label">Flags</p>
+        <dl class="flags">
+          <div><dt><code>--verify size</code></dt><dd>Default. Size + mtime, cheap.</dd></div>
+          <div><dt><code>--verify hash</code></dt><dd>Confirms matches by reading both sides.</dd></div>
+          <div><dt><code>--verify hash-all</code></dt><dd>Hashes regardless of size and mtime.</dd></div>
+          <div><dt><code>--json</code></dt><dd>Machine-readable report.</dd></div>
+          <div><dt><code>--limit &lt;N&gt;</code></dt><dd>Cap listed differing paths (default 50).</dd></div>
+        </dl>
+        <p>Choose <code>size</code> for &ldquo;did the bytes arrive intact&rdquo; and <code>hash</code> when it actually matters. A same-length file whose mtime was preserved is reported as <em>in sync</em> under <code>size</code> and as a difference under <code>hash</code> &mdash; measured, not asserted.</p>
+      </article>
+
+      <article class="command" id="cmd-manifest-create" data-od-id="command-manifest-create">
+        <h3><code>tallow manifest-create</code></h3>
+        <p>Write a manifest of a tree &mdash; relative path, size and content hash per file &mdash; so a copy can be verified later on a machine that never had the source.</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>syntax</span><button type="button" class="copy-btn" aria-label="Copy syntax to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow manifest-create ...</code></pre>
+        </div>
+        <p>Format: <code>path&lt;TAB&gt;size&lt;TAB&gt;blake3</code> behind a version header (<code># nixe manifest v1</code>), deliberately plain TSV: a manifest is read by humans during an incident and by scripts afterwards.</p>
+      </article>
+
+      <article class="command" id="cmd-manifest-verify" data-od-id="command-manifest-verify">
+        <h3><code>tallow manifest-verify</code></h3>
+        <p>Verify a tree against a manifest written by <code>manifest-create</code>.</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>syntax</span><button type="button" class="copy-btn" aria-label="Copy syntax to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow manifest-verify --manifest &lt;MANIFEST&gt; &lt;ROOT&gt;</code></pre>
+        </div>
+        <p><code>extra</code> entries are reported and never deleted: a manifest records what was sent and is not an authority to remove anything.</p>
+      </article>
+
+      <article class="command" id="cmd-audit-transfers" data-od-id="command-audit-transfers">
+        <h3><code>tallow audit-transfers</code></h3>
+        <p>Show the transfer audit log.</p>
+      </article>
+
+      <article class="command" id="cmd-hash" data-od-id="command-hash">
+        <h3><code>tallow hash</code></h3>
+        <p>Hash a file with BLAKE3.</p>
+      </article>
+
+      <h3 id="commands-script">From a Tallow script (<code>.tl</code>)</h3>
+      <p>The same engine is reachable from the scripting surface:</p>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>.tl</span><button type="button" class="copy-btn" aria-label="Copy code to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-tl">Transfer.manifest_create(root, out) -&gt; i64
+Transfer.manifest_check(root, manifest) -&gt; String   // JSON report
+Transfer.hash(path)</code></pre>
+      </div>
+
+      <aside class="note" data-od-id="note-not-tallow-copy">
+        <p><strong>Not Tallow Copy.</strong> The wider Tallow toolkit also ships <code>relay</code>, <code>speed-test</code>, <code>two-way-sync</code> and <code>watch</code>. They belong to the broader TallowTransfer work, not to this engine. Do not present them as Tallow Copy features.</p>
+      </aside>
+    </section>
+
+    <!-- ══════════════ 03 BENCHMARKS ══════════════ -->
+    <section id="benchmarks" class="section" data-od-id="section-benchmarks" aria-labelledby="benchmarks-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">03</p>
+        <h2 id="benchmarks-title">Benchmarks</h2>
+      </header>
+
+      <p class="section-lede">Every number here was measured on one Linux workstation and its own storage and network. They are provenance, not marketing: treat them as &ldquo;what this machine did&rdquo;, not as portable claims. The project&rsquo;s benchmark protocol explicitly forbids throughput claims against other tools until a harness produces that data, so none appear here.</p>
+
+      <h3 id="bench-smoke">Engine performance smoke (tiny dataset)</h3>
+      <p>A dedicated test:</p>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-bash">cargo test -p tallow-copy-engine --test perf_copy_engine -- --ignored --nocapture</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table class="spec-table" data-od-id="table-engine-smoke">
+          <caption class="visually-hidden">Engine performance smoke results</caption>
+          <tbody>
+            <tr><th scope="row">Files</th><td>9</td></tr>
+            <tr><th scope="row">Logical bytes</th><td>33,587,200 &nbsp;(32 MiB)</td></tr>
+            <tr><th scope="row">Copy</th><td>59 ms</td></tr>
+            <tr><th scope="row">Verify</th><td>28 ms &nbsp;(inside copy)</td></tr>
+            <tr><th scope="row">Throughput</th><td>542.9 MB/s</td></tr>
+            <tr><th scope="row">Warm pass</th><td>skipped 9, verified 9</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The dataset is tiny, so read this as &ldquo;the plumbing works and is not slow&rdquo;, not as a peak number. The warm pass skipping all nine files is the skip policy doing its job.</p>
+
+      <h3 id="bench-network">Network targets</h3>
+      <p><strong>CIFS/SMB NAS over Wi-Fi</strong> (1040 Mbit/s PHY): write <strong>43.6 MB/s</strong>, read <strong>50.9&ndash;55.3 MB/s</strong>.</p>
+      <div class="table-wrap">
+        <table data-od-id="table-cifs-streams">
+          <caption class="visually-hidden">CIFS throughput by number of concurrent streams</caption>
+          <thead>
+            <tr><th scope="col">Concurrent streams</th><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Throughput</th><td>47.2 MB/s</td><td>45.2 MB/s</td><td>35.1 MB/s</td><td>38.4 MB/s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>No parallel scaling on this target, and four streams are worse than one. The protocol records that as an acceptance gate: a target that does not scale should be recognised, not fought.</p>
+      <p><strong>WAN over SSH, RTT 133.71 ms:</strong> <strong>13.27 MB/s</strong> single stream, <strong>25.20 MB/s</strong> at two streams (<strong>1.90&times;</strong>), with a ceiling of roughly 201 Mbit/s reached at two. A third stream adds nothing.</p>
+
+      <h3 id="bench-threads">Thread counts, and why they are derived</h3>
+      <div class="table-wrap">
+        <table data-od-id="table-thread-counts">
+          <caption class="visually-hidden">Measured throughput by thread count and workload</caption>
+          <thead>
+            <tr><th scope="col">Workload</th><th scope="col">1 thread</th><th scope="col">4 threads</th><th scope="col">8 threads</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Local small files</th><td>440 MiB/s</td><td>801 MiB/s</td><td>868 MiB/s</td></tr>
+            <tr><th scope="row">Local large files</th><td>3556 MiB/s</td><td>&mdash;</td><td>581 MiB/s</td></tr>
+            <tr><th scope="row">CIFS target</th><td>baseline</td><td>&mdash;</td><td>&asymp;26% slower than 1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Parallelism helps many small files and actively hurts large sequential ones. That is why the engine derives the worker count from the tree and the path class instead of using the core count, and why <code>-j 0</code> asks it to choose.</p>
+
+      <h3 id="bench-declined">Backends that were evaluated and declined</h3>
+      <div class="table-wrap">
+        <table data-od-id="table-declined-backends">
+          <caption class="visually-hidden">io_uring evaluation by block size, single thread, buffered</caption>
+          <thead>
+            <tr><th scope="col">Block size</th><th scope="col">Throughput</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">64K</th><td>2681 MiB/s</td></tr>
+            <tr><th scope="row">256K</th><td>3765 MiB/s</td></tr>
+            <tr><th scope="row">1M</th><td>3631 MiB/s</td></tr>
+            <tr><th scope="row">4M</th><td>2612 MiB/s</td></tr>
+            <tr><th scope="row">16M</th><td>2008 MiB/s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The kernel&rsquo;s own fast path at 1M single-threaded reached about <strong>20482 MiB/s</strong>. On this hardware there was nothing to gain, so the extra dependency was not taken.</p>
+
+      <h3 id="bench-reproduce">How to reproduce</h3>
+      <p><code>docs/benchmarks/copy-benchmark-protocol.md</code> in the repository defines the classes, datasets, metrics and gates, and includes the exact invocations.</p>
+    </section>
+
+    <!-- ══════════════ 04 FAQ ══════════════ -->
+    <section id="faq" class="section" data-od-id="section-faq" aria-labelledby="faq-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">04</p>
+        <h2 id="faq-title">Troubleshooting and FAQ</h2>
+      </header>
+
+      <p class="section-lede">These are problems this project actually hit, with the fix that worked.</p>
+
+      <article class="faq-item" id="faq-linuxdeploy" data-od-id="faq-linuxdeploy">
+        <h3><code>failed to run linuxdeploy</code> while bundling the AppImage</h3>
+        <p>Tauri&rsquo;s pinned linuxdeploy aborts inside its own <code>strip</code>, which cannot read <code>.relr.dyn</code> sections used by modern system libraries. <code>linuxdeploy --version</code> runs fine and libfuse2 is present, so it is neither FUSE nor a failure to start. Use a current linuxdeploy directly against the staged AppDir, with the plugin directory pointed at Tauri&rsquo;s downloads. Building the <code>.deb</code> is unaffected.</p>
+      </article>
+
+      <article class="faq-item" id="faq-visual-tests" data-od-id="faq-visual-tests">
+        <h3>The visual test suite dies before any page loads</h3>
+        <p><code>Error: browserType.launch: Executable doesn't exist at .../chrome-headless-shell</code>. The configured browser directory exists and even contains the right revision folder &mdash; the executable inside it does not. The suite now resolves the browser by looking for a runnable binary (vendored path, then <code>~/.cache/ms-playwright</code>) and leaves <code>PLAYWRIGHT_BROWSERS_PATH</code> unset if neither can launch, so Playwright reports its own error. Set <code>PLAYWRIGHT_BROWSERS_PATH</code> explicitly to override.</p>
+      </article>
+
+      <article class="faq-item" id="faq-deb-arch" data-od-id="faq-deb-arch">
+        <h3>The .deb will not install</h3>
+        <p>It is a Debian package. On Arch-family distributions there is no <code>dpkg</code> to install it with &mdash; use the AppImage or build from source.</p>
+      </article>
+
+      <article class="faq-item" id="faq-command-not-found" data-od-id="faq-command-not-found">
+        <h3><code>tallow: command not found</code></h3>
+        <p>The binary is not installed to your <code>PATH</code> by default. Either run it from the checkout (<code>cargo run --quiet --bin tallow -- copy src dst</code>) or install a release build into <code>~/.local/bin</code>.</p>
+      </article>
+
+      <article class="faq-item" id="faq-app-server" data-od-id="faq-app-server">
+        <h3>The desktop app does not start on a server</h3>
+        <p>It needs a display; it is a desktop window, not a service. Use the CLI on headless machines &mdash; it drives the same engine.</p>
+      </article>
+
+      <article class="faq-item" id="faq-manifest-needed" data-od-id="faq-manifest-needed">
+        <h3>&ldquo;a manifest is needed&rdquo; when verifying</h3>
+        <p>Manifest verification requires a manifest. The plan checks for one up front, names what is missing, and reads and parses it before the transfer starts, so a bad manifest fails before any bytes move rather than after.</p>
+      </article>
+
+      <article class="faq-item" id="faq-in-sync" data-od-id="faq-in-sync">
+        <h3>Why does <code>verify-transfer</code> say &ldquo;in sync&rdquo; when a file changed?</h3>
+        <p>You are using the default <code>size</code> policy, which compares size and mtime. A same-length file with a preserved timestamp is indistinguishable to it. Use <code>--verify hash</code>, which reads both sides. This is measured, not theoretical &mdash; with the size policy a tampered file whose mtime was reset reports &ldquo;in sync&rdquo;, and with <code>--verify hash</code> the same tree reports one difference.</p>
+      </article>
+
+      <article class="faq-item" id="faq-mirror-deletes" data-od-id="faq-mirror-deletes">
+        <h3>Mirror deletes were refused</h3>
+        <p>Destructive mirror operations require an explicit plan review before they execute. Independently, a path that an exclusion filtered out is never deleted &mdash; mirror does not delete what it never considered.</p>
+      </article>
+
+      <article class="faq-item" id="faq-settings-path" data-od-id="faq-settings-path">
+        <h3>Where do settings, history and logs live?</h3>
+        <p><code>~/.local/share/Tallow Copy/</code>, with logs in a <code>logs/</code> subdirectory and finished jobs in <code>history.json</code> beside them. History is written from terminal job states only, so a job that failed halfway cannot be filed as complete. Copy that directory to carry your configuration to another machine.</p>
+      </article>
+
+      <article class="faq-item" id="faq-signing" data-od-id="faq-signing">
+        <h3>Are the macOS and Windows builds signed?</h3>
+        <p>No. See Install &mdash; expect a SmartScreen warning on Windows and a quarantine attribute to clear on macOS.</p>
+      </article>
+
+      <h3 id="faq-support">Support</h3>
+      <ul class="plain-list">
+        <li>Issues: <a href="https://github.com/aamirmanisa/tallow-copy/issues" target="_blank" rel="noopener">github.com/aamirmanisa/tallow-copy/issues</a></li>
+        <li>Source and changes: <a href="https://github.com/aamirmanisa/tallow-copy" target="_blank" rel="noopener">github.com/aamirmanisa/tallow-copy</a></li>
+      </ul>
+    </section>
+
+    <!-- ══════════════ 05 ADVANCED ══════════════ -->
+    <section id="advanced" class="section" data-od-id="section-advanced" aria-labelledby="advanced-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">05</p>
+        <h2 id="advanced-title">Advanced usage</h2>
+      </header>
+
+      <p class="section-lede">Real jobs, assembled from the commands above. Every flag and number on this page is documented in the command reference and the benchmarks.</p>
+
+      <article class="job" id="job-nas-push" data-od-id="job-nas-push">
+        <h3>The nightly NAS push</h3>
+        <p>The project&rsquo;s own 45&nbsp;GB NAS push runs headless: a <code>.tl</code> script driven by a timer, with the <code>tallow</code> binary and the scripts copied onto the machine. The whole surface &mdash; <code>copy</code>, <code>delta-sync</code>, <code>verify-transfer</code>, <code>manifest-create</code>, <code>manifest-verify</code> &mdash; is available without the app.</p>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>syntax</span><button type="button" class="copy-btn" aria-label="Copy syntax to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow delta-sync &lt;SRC&gt; &lt;DST&gt;</code></pre>
+        </div>
+        <p><code>-j 0</code> asks the engine to derive the worker count. Measured: on a CIFS target, 8 threads was about 26% slower than 1 &mdash; which is exactly why the count is derived from the tree and the path class instead of assumed from the core count.</p>
+      </article>
+
+      <article class="job" id="job-prove-it-landed" data-od-id="job-prove-it-landed">
+        <h3>Copy, then prove it landed</h3>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy commands to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow copy /srv/data /mnt/backup/data
+tallow verify-transfer --source /srv/data --target /mnt/backup/data --verify hash</code></pre>
+        </div>
+        <p>Choose <code>size</code> for &ldquo;did the bytes arrive intact&rdquo; and <code>hash</code> when it actually matters. Finish by checking the audit log: <code>tallow audit-transfers</code>.</p>
+      </article>
+
+      <article class="job" id="job-resume" data-od-id="job-resume">
+        <h3>Resume an interrupted copy</h3>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow copy /srv/data /mnt/backup/data --resume</code></pre>
+        </div>
+        <p>Each interrupted file continues from its deterministic partial sibling (<code>.name.tallow-partial</code> beside the destination), which a resume run deliberately leaves behind on failure. Local paths only: a finished destination makes any partial stale, so it is ignored rather than spliced in.</p>
+      </article>
+
+      <article class="job" id="job-manifest" data-od-id="job-manifest">
+        <h3>Ship a tree to a machine that never saw the source</h3>
+        <div class="codeblock">
+          <div class="codeblock-head"><span>syntax</span><button type="button" class="copy-btn" aria-label="Copy syntax to clipboard"><span class="copy-label">Copy</span></button></div>
+          <pre><code class="language-bash">tallow manifest-create ...
+tallow manifest-verify --manifest &lt;MANIFEST&gt; &lt;ROOT&gt;</code></pre>
+        </div>
+        <p>Create the manifest beside the tree, transfer both, then verify on arrival. The manifest is plain TSV (<code>path&lt;TAB&gt;size&lt;TAB&gt;blake3</code> behind a version header) &mdash; readable by humans during an incident and by scripts afterwards. <code>extra</code> entries are reported and never deleted. The same engine is reachable from a script: <code>Transfer.manifest_create(root, out)</code>, <code>Transfer.manifest_check(root, manifest)</code>, <code>Transfer.hash(path)</code>.</p>
+      </article>
+    </section>
+
+    <!-- ══════════════ 06 CHANGELOG ══════════════ -->
+    <section id="changelog" class="section" data-od-id="section-changelog" aria-labelledby="changelog-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">06</p>
+        <h2 id="changelog-title">Changelog</h2>
+      </header>
+
+      <article class="release" data-od-id="release-2026-10-09">
+        <p class="release-date"><time datetime="2026-10-09">2026-10-09</time> &middot; parity, publishing and CI</p>
+        <p><strong>The app stopped guessing.</strong> The worker count shown as &ldquo;AUTO&rdquo; was a literal 16 rather than a derivation; it now asks the engine, and one function owns that rule so the number the engine uses and the number the interface shows cannot disagree. Resume became reachable for plain copies, a fail-fast error policy became selectable, and the engine&rsquo;s small-file bundling advice now travels to the interface through warnings it already rendered.</p>
+        <p><strong>The app can answer &ldquo;did it land?&rdquo;.</strong> The tree audit moved into the engine and the standard library now delegates to it, removing about sixty lines of duplicated counting. The desktop app gained a read-only Verify action with a report. An audit compares; it never writes.</p>
+        <p><strong>Manifest verification does what its name says.</strong> It previously refused rather than silently degrade to a hash. Now a manifest is required, validated before the transfer, and the finished result is checked once; a mismatch names the file. Scripts gained <code>Transfer.manifest_create</code> and <code>Transfer.manifest_check</code>, so a script no longer reimplements the format.</p>
+        <p><strong>Job history survives a restart.</strong> Finished jobs are persisted beside the logs, written from what the interface observed.</p>
+        <p><strong>Publishing.</strong> MIT licence text added for the workspace and the engine crate. The engine was verified to package and compile standalone. CI builds all four targets &mdash; Linux deb and AppImage, Windows MSI and NSIS, macOS app and dmg for both architectures.</p>
+        <p><strong>Fixes.</strong> The visual test suite ran against a browser install that could not launch. The empty review queue said &ldquo;Nothing needs review&rdquo; directly beneath an audit report that had just found differences; it now speaks only for the queue. Two specification documents were corrected after the work above made them stale &mdash; the engine architecture doc still called manifest verification refused, and the app README still listed resume and sampled-hash verification as absent.</p>
+      </article>
+    </section>
+
+    <!-- ══════════════ 07 CONTRIBUTING ══════════════ -->
+    <section id="contributing" class="section" data-od-id="section-contributing" aria-labelledby="contributing-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">07</p>
+        <h2 id="contributing-title">Contributing</h2>
+      </header>
+
+      <h3 id="contrib-layout">Layout</h3>
+      <ul class="plain-list mono-list">
+        <li><code>crates/tallow-copy-engine/</code> &mdash; the engine. Standalone by design: <code>blake3</code>, <code>filetime</code> and <code>libc</code>, and it must not depend on the wider <code>tallow</code> crate.</li>
+        <li><code>apps/tallow-copy/</code> &mdash; the Tauri desktop app.</li>
+        <li><code>docs/</code> &mdash; architecture, the benchmark protocol, and the audit records.</li>
+      </ul>
+
+      <h3 id="contrib-branch">Fork and branch</h3>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy commands to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-bash">git clone https://github.com/aamirmanisa/tallow-copy
+cd tallow-copy
+git checkout -b fix/short-description</code></pre>
+      </div>
+      <p>Use a descriptive branch name; the project&rsquo;s history reads as a sequence of decisions, so branch names and commit messages are part of the documentation.</p>
+
+      <h3 id="contrib-prereq">Before you open a pull request</h3>
+      <div class="codeblock">
+        <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy commands to clipboard"><span class="copy-label">Copy</span></button></div>
+        <pre><code class="language-bash">cargo test -p tallow-copy-engine
+cd apps/tallow-copy &amp;&amp; npm ci &amp;&amp; npm run test:visual</code></pre>
+      </div>
+      <p>The engine tests are the contract for planning, copying, verification and the manifest. The visual suite renders the interface in a real browser and asserts layout, which catches the class of regression that unit tests cannot.</p>
+
+      <h3 id="contrib-commits">Commits and pull requests</h3>
+      <p>Explain the reason, not just the change. If a fix corrects a specification or a comment that had become untrue, say so. If a number appears in a commit message, it should have been measured &mdash; the project&rsquo;s benchmark protocol exists precisely so that claims are reproducible.</p>
+      <p>In the pull request, state what you ran and what it returned. &ldquo;Tests pass&rdquo; is weaker than the command and its result.</p>
+
+      <h3 id="contrib-ci">What CI does</h3>
+      <p><code>.github/workflows/tallow-copy-build.yml</code> builds every platform on its own runner: Ubuntu for the deb and AppImage, Windows for MSI and NSIS, and both macOS runners for the app and dmg. Tauri cannot produce Windows or macOS bundles from Linux, and the runners are how each platform&rsquo;s build is verified rather than assumed. Artifacts are uploaded per platform.</p>
+    </section>
+
+    <!-- ══════════════ 08 LICENSE ══════════════ -->
+    <section id="license" class="section" data-od-id="section-license" aria-labelledby="license-title">
+      <header class="section-head">
+        <p class="section-num" aria-hidden="true">08</p>
+        <h2 id="license-title">License</h2>
+      </header>
+
+      <div class="license-text">
+        <p>MIT.</p>
+        <p>Copyright (c) 2026 Aamir Manisa</p>
+        <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &ldquo;Software&rdquo;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+        <p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+        <p class="license-caps">The software is provided &ldquo;as is&rdquo;, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.</p>
+        <p>Both published crates declare <code>license = "MIT"</code>, and the licence text ships at the repository root and inside the engine crate so a published package carries it.</p>
+      </div>
+    </section>
+
+      </div>
+
+      <aside class="toc" data-od-id="toc">
+        <p class="toc-title">On this page</p>
+        <nav aria-label="On this page">
+          <a href="#install">Install</a>
+          <a href="#commands">Commands</a>
+          <a href="#benchmarks">Benchmarks</a>
+          <a href="#faq">FAQ</a>
+          <a href="#advanced">Advanced</a>
+          <a href="#changelog">Changelog</a>
+          <a href="#contributing">Contributing</a>
+          <a href="#license">License</a>
+        </nav>
+      </aside>
+
+    </div>
+  </main>
+
+  <footer class="site-footer" data-od-id="site-footer">
+    <div class="footer-inner">
+      <p class="footer-brand">Tallow Copy</p>
+      <p class="footer-line">A native copy engine in Rust, a CLI that drives it, and a desktop app built on both. MIT licensed &middot; Copyright &copy; 2026 Aamir Manisa.</p>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/aamirmanisa/tallow-copy" target="_blank" rel="noopener">Repository</a>
+        <a href="https://github.com/aamirmanisa/tallow-copy/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="#commands">Command reference</a>
+        <a href="#benchmarks">Benchmarks</a>
+      </nav>
+    </div>
+  </footer>
+
+  <div class="search-dialog" id="search-dialog" role="dialog" aria-modal="true" aria-label="Search documentation" hidden>
+    <div class="search-panel" role="search">
+      <div class="search-field">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <input type="search" id="search-input" placeholder="Search sections, commands, errors&hellip;" autocomplete="off" spellcheck="false" aria-label="Search documentation">
+        <button type="button" class="icon-btn" id="search-close" aria-label="Close search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <ul class="search-results" id="search-results" aria-label="Search results"></ul>
+      <p class="search-empty" id="search-empty" hidden>No matches.</p>
+      <p class="search-hint" id="search-hint">Type to search &middot; &uarr;&darr; to move &middot; Enter to open &middot; Esc to close</p>
+    </div>
+  </div>
+
+  <button type="button" class="back-to-top" id="back-to-top" aria-label="Back to top" hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <script src="vendor/prism.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
