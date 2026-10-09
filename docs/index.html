@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tallow Copy — Documentation</title>
-  <meta name="description" content="Documentation for Tallow Copy: a stateless copy engine in Rust, the CLI that drives it, and the desktop app built on both. Install, command reference, benchmarks, troubleshooting and contributing.">
+  <meta name="description" content="Documentation for Tallow Copy: the tallow CLI's copy surface (copy, delta-sync, verify-transfer), the shared Rust engine behind it, and the desktop app built on the same implementation. Install, command reference, benchmarks, troubleshooting and contributing.">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -15,7 +15,7 @@
     <div class="header-inner">
       <a class="brand" href="#top">
         <span class="brand-name">Tallow Copy</span>
-        <span class="brand-version">0.1.0</span>
+        <span class="brand-version">0.1.1</span>
       </a>
 
       <nav class="site-nav" aria-label="Sections">
@@ -75,7 +75,7 @@
     <section id="top" class="hero" data-od-id="hero" aria-labelledby="hero-title">
       <p class="eyebrow">Documentation</p>
       <h1 id="hero-title">Tallow Copy</h1>
-      <p class="lead">A native copy engine in Rust, a CLI that drives it, and a desktop app built on both. One implementation of byte movement, content hashing and the skip/verify verdicts is shared by the CLI, the Tallow scripting surface and the app &mdash; so &ldquo;the bytes arrived&rdquo; cannot differ between them.</p>
+      <p class="lead">The <code>tallow</code> CLI&rsquo;s copy surface &mdash; <code>copy</code>, <code>delta-sync</code>, <code>verify-transfer</code> &mdash; on one implementation shared with the Tallow scripting surface and the desktop app. One implementation of byte movement, content hashing and the skip/verify verdicts is shared by the CLI, the Tallow scripting surface and the app &mdash; so &ldquo;the bytes arrived&rdquo; cannot differ between them.</p>
 
       <p class="hero-meta">
         MIT licensed &middot; engine depends only on <code>blake3</code>, <code>filetime</code>, <code>libc</code>
@@ -92,11 +92,12 @@
 
       <figure class="hero-command" data-od-id="hero-command">
         <figcaption class="codeblock-head">
-          <span>quickstart &middot; from a checkout</span>
+          <span>quickstart &middot; the CLI</span>
           <button type="button" class="copy-btn" aria-label="Copy quickstart to clipboard"><span class="copy-label">Copy</span></button>
         </figcaption>
-        <pre><code class="language-bash">cargo build --release -p tallow-copy-engine
-cargo run --quiet --bin tallow -- copy src dst</code></pre>
+        <pre><code class="language-bash"># the prebuilt CLI is attached to the latest release (Linux x86_64, static):
+# chmod +x it, rename it to tallow, then
+./tallow copy src dst</code></pre>
       </figure>
 
       <ul class="capabilities" data-od-id="hero-capabilities">
@@ -154,25 +155,25 @@ cargo run --quiet --bin tallow -- copy src dst</code></pre>
           <h3 id="install-linux-deb">The deb &mdash; Debian / Ubuntu</h3>
           <div class="codeblock">
             <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
-            <pre><code class="language-bash">sudo apt install ./tallow-copy_0.1.0_amd64.deb</code></pre>
+            <pre><code class="language-bash">sudo apt install ./tallow-copy_0.1.1_amd64.deb</code></pre>
           </div>
-          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_amd64.deb">tallow-copy_0.1.0_amd64.deb</a> (3.2 MB)</p>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow-copy_0.1.1_amd64.deb">tallow-copy_0.1.1_amd64.deb</a> (3.2 MB)</p>
           <p>Or, if you prefer: <code>sudo dpkg -i</code> followed by <code>sudo apt -f install</code>. Installing from a local path with <code>apt</code> is what pulls the dependencies in.</p>
           <p>Not for Arch-family systems. A <code>.deb</code> is a Debian package; on Arch, use the AppImage or build from source. (Verified the hard way: this project&rsquo;s own machine is CachyOS and has no <code>dpkg-deb</code>.)</p>
 
           <h3 id="install-linux-appimage">The AppImage &mdash; any distribution</h3>
           <div class="codeblock">
             <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
-            <pre><code class="language-bash">chmod +x tallow-copy_0.1.0_amd64.AppImage
-./tallow-copy_0.1.0_amd64.AppImage</code></pre>
+            <pre><code class="language-bash">chmod +x tallow-copy_0.1.1_amd64.AppImage
+./tallow-copy_0.1.1_amd64.AppImage</code></pre>
           </div>
-          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_amd64.AppImage">tallow-copy_0.1.0_amd64.AppImage</a> (77.7 MB)</p>
-          <p>One file, no install, no dependencies to resolve. If the host lacks FUSE, run it with <code>APPIMAGE_EXTRACT_AND_RUN=1 ./tallow-copy_0.1.0_amd64.AppImage</code>.</p>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow-copy_0.1.1_amd64.AppImage">tallow-copy_0.1.1_amd64.AppImage</a> (77.7 MB)</p>
+          <p>One file, no install, no dependencies to resolve. If the host lacks FUSE, run it with <code>APPIMAGE_EXTRACT_AND_RUN=1 ./tallow-copy_0.1.1_amd64.AppImage</code>.</p>
         </div>
 
         <div role="tabpanel" id="panel-macos" aria-labelledby="tab-macos" class="tabpanel" data-od-id="panel-macos" hidden>
           <h3 id="install-macos">macOS &mdash; CI artifact, unsigned</h3>
-          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_x64.dmg">tallow-copy_0.1.0_x64.dmg</a> (3.0 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_aarch64.dmg">tallow-copy_0.1.0_aarch64.dmg</a> (3.0 MB)</p>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow-copy_0.1.1_x64.dmg">tallow-copy_0.1.1_x64.dmg</a> (3.0 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow-copy_0.1.1_aarch64.dmg">tallow-copy_0.1.1_aarch64.dmg</a> (3.0 MB)</p>
           <p>Built by CI from the same sources, and <strong>unsigned</strong>. macOS needs the quarantine attribute cleared, or a right-click Open:</p>
           <div class="codeblock">
             <div class="codeblock-head"><span>shell</span><button type="button" class="copy-btn" aria-label="Copy command to clipboard"><span class="copy-label">Copy</span></button></div>
@@ -182,7 +183,7 @@ cargo run --quiet --bin tallow -- copy src dst</code></pre>
 
         <div role="tabpanel" id="panel-windows" aria-labelledby="tab-windows" class="tabpanel" data-od-id="panel-windows" hidden>
           <h3 id="install-windows">Windows &mdash; CI artifact, unsigned</h3>
-          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_x64_en-US.msi">tallow-copy_0.1.0_x64_en-US.msi</a> (3.1 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.0/tallow-copy_0.1.0_x64-setup.exe">tallow-copy_0.1.0_x64-setup.exe</a> (2.0 MB)</p>
+          <p class="dl">Download: <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow-copy_0.1.1_x64_en-US.msi">tallow-copy_0.1.1_x64_en-US.msi</a> (3.1 MB) &nbsp;·&nbsp; <a href="https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow-copy_0.1.1_x64-setup.exe">tallow-copy_0.1.1_x64-setup.exe</a> (2.0 MB)</p>
           <p>Built by CI from the same sources, and <strong>unsigned</strong>. Windows shows a SmartScreen warning; accept it to run.</p>
         </div>
       </div>
@@ -219,7 +220,7 @@ npx tauri build</code></pre>
         <h2 id="commands-title">Command reference</h2>
       </header>
 
-      <p class="section-lede">Every command below is Tallow Copy&rsquo;s, verified against the live binary. Run them from a checkout of the repo, or replace <code>cargo run --quiet --bin tallow --</code> with an installed <code>tallow</code> binary.</p>
+      <p class="section-lede">Every command below is Tallow Copy&rsquo;s, verified against the live binary. <code>tallow</code> is Tallow&rsquo;s CLI, and its copy surface is exactly these commands.</p>
 
       <article class="command" id="cmd-copy" data-od-id="command-copy">
         <h3><code>tallow copy</code></h3>
@@ -343,7 +344,7 @@ Transfer.hash(path)</code></pre>
             <tr><td>20,000 small files, 391&nbsp;MB (clone-free, both to tmpfs)</td><td>0.566&nbsp;s &mdash; 691&nbsp;MB/s</td><td>1.224&nbsp;s &mdash; 319&nbsp;MB/s</td></tr>
             <tr><td>Warm no-op, nothing to copy</td><td>0.052&nbsp;s</td><td>0.103&nbsp;s</td></tr>
             <tr><td>1% of files changed and 1% deleted</td><td>0.120&nbsp;s</td><td>0.152&nbsp;s</td></tr>
-            <tr><td>Hash verification, both sides re-read (391&nbsp;MB)</td><td>2.256&nbsp;s</td><td>0.305&nbsp;s</td></tr>
+            <tr><td>Hash verification, both sides re-read (391&nbsp;MB)</td><td>1.456&nbsp;s</td><td>0.305&nbsp;s</td></tr>
             <tr><td>2&nbsp;GiB clone-free byte copy (both to tmpfs)</td><td>4.949&nbsp;s &mdash; 414&nbsp;MB/s</td><td>8.698&nbsp;s &mdash; 235&nbsp;MB/s</td></tr>
             <tr><td>4&nbsp;GiB of large files (clone-assisted on btrfs)</td><td>0.038&nbsp;s</td><td>5.452&nbsp;s</td></tr>
           </tbody>
@@ -453,7 +454,7 @@ Transfer.hash(path)</code></pre>
 
       <article class="faq-item" id="faq-command-not-found" data-od-id="faq-command-not-found">
         <h3><code>tallow: command not found</code></h3>
-        <p>The binary is not installed to your <code>PATH</code> by default. Either run it from the checkout (<code>cargo run --quiet --bin tallow -- copy src dst</code>) or install a release build into <code>~/.local/bin</code>.</p>
+        <p>The binary is not installed to your <code>PATH</code> by default. Download the CLI from the <a href="https://github.com/aamirmanisa/tallow-copy/releases/latest">latest release</a>, <code>chmod +x</code> it and put it in <code>~/.local/bin</code>.</p>
       </article>
 
       <article class="faq-item" id="faq-app-server" data-od-id="faq-app-server">
@@ -638,7 +639,7 @@ cd apps/tallow-copy &amp;&amp; npm ci &amp;&amp; npm run test:visual</code></pre
   <footer class="site-footer" data-od-id="site-footer">
     <div class="footer-inner">
       <p class="footer-brand">Tallow Copy</p>
-      <p class="footer-line">A native copy engine in Rust, a CLI that drives it, and a desktop app built on both. MIT licensed &middot; Copyright &copy; 2026 Aamir Manisa.</p>
+      <p class="footer-line">The <code>tallow</code> CLI&rsquo;s copy surface &mdash; <code>copy</code>, <code>delta-sync</code>, <code>verify-transfer</code> &mdash; on one implementation shared with the Tallow scripting surface and the desktop app. MIT licensed &middot; Copyright &copy; 2026 Aamir Manisa.</p>
       <nav class="footer-nav" aria-label="Footer">
         <a href="https://github.com/aamirmanisa/tallow-copy" target="_blank" rel="noopener">Repository</a>
         <a href="https://github.com/aamirmanisa/tallow-copy/issues" target="_blank" rel="noopener">Issues</a>

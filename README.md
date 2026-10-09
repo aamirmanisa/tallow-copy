@@ -2,9 +2,11 @@
 
 # Tallow Copy
 
-A native copy engine in Rust, a CLI that drives it, and a desktop app built on both.
+The `tallow` CLI's copy surface — `copy`, `delta-sync` and `verify-transfer` — on one implementation of
+byte movement, content hashing and the skip/verify verdicts, shared with the Tallow scripting surface
+and the desktop app.
 
-[![version](https://img.shields.io/badge/version-0.1.0-813a32)](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.0)
+[![version](https://img.shields.io/badge/version-0.1.1-813a32)](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1)
 ![license](https://img.shields.io/badge/license-MIT-6b7280)
 ![bundles](https://img.shields.io/badge/bundles-linux%20%C2%B7%20windows%20%C2%B7%20macos%20arm64%20%26%20intel-6b7280)
 [![build](https://github.com/aamirmanisa/tallow-copy/actions/workflows/tallow-copy-build.yml/badge.svg)](https://github.com/aamirmanisa/tallow-copy/actions/workflows/tallow-copy-build.yml)
@@ -21,17 +23,13 @@ One implementation of byte movement, content hashing and the skip/verify verdict
 
 ## Quickstart
 
-From a checkout:
-
-```bash
-cargo build --release -p tallow-copy-engine
-cargo run --quiet --bin tallow -- copy src dst
-```
+The CLI is Tallow's copy surface - `tallow copy <SRC> <DST>`, with `delta-sync` and
+`verify-transfer` beside it. The desktop app is a separate package, further down.
 
 On Debian or Ubuntu, from the release:
 
 ```bash
-sudo apt install ./tallow-copy_0.1.0_amd64.deb
+sudo apt install ./tallow-copy_0.1.1_amd64.deb
 ```
 
 ## Download
@@ -40,16 +38,16 @@ CI builds and bundles every platform on each push. Signed by nobody — see [Sig
 
 | Platform | Files |
 |---|---|
-| Linux x86_64 | [`tallow-copy_0.1.0_amd64.deb`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.0_amd64.AppImage`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
-| Windows x86_64 | [`tallow-copy_0.1.0_x64_en-US.msi`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.0_x64-setup.exe`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
-| macOS Intel | [`tallow-copy_0.1.0_x64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
-| macOS Apple silicon | [`tallow-copy_0.1.0_aarch64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
+| Linux x86_64 | [`tallow-copy_0.1.1_amd64.deb`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.1_amd64.AppImage`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
+| Windows x86_64 | [`tallow-copy_0.1.1_x64_en-US.msi`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.1_x64-setup.exe`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
+| macOS Intel | [`tallow-copy_0.1.1_x64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
+| macOS Apple silicon | [`tallow-copy_0.1.1_aarch64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
 
-Every asset carries a SHA-256 in its [release notes](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.0). The AppImage needs FUSE; without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.
+Every asset carries a SHA-256 in its [release notes](https://github.com/aamirmanisa/tallow-copy/releases/tag/v0.1.1). The AppImage needs FUSE; without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.
 
 ## Command reference
 
-Verified against the live binary. From a checkout, replace `tallow` with `cargo run --quiet --bin tallow --`.
+Every row verified against the live binary. `tallow` is Tallow's CLI; these are its copy-surface subcommands.
 
 | Command | What it does |
 |---|---|
@@ -85,7 +83,7 @@ A same-length file whose mtime was preserved is reported as *in sync* under `siz
 | Vs `rsync -a`, warm no-op / 1% changed+deleted | 0.052 vs 0.103 s / 0.120 vs 0.152 s |
 | Vs `rsync -a`, 2 GiB clone-free byte copy (both to tmpfs) | 414 vs 235 MB/s - **1.76x faster** (485 MB/s at `-j 4`) |
 | Vs `rsync -a`, 4 GiB large files | 0.038 vs 5.452 s - **a clone, not throughput** |
-| Vs `rsync -rc`, hash verification of 391 MB | 2.256 vs 0.305 s - **rsync ~7x faster** |
+| Vs `rsync -rc`, hash verification of 391 MB | 1.456 vs 0.381 s - **rsync ~3.8x faster** |
 | Robocopy | **not measured** - Windows-only |
 
 Method, raw rows and the clone control: [`docs/benchmarks/results-2026-10-09-linux-btrfs.md`](docs/benchmarks/results-2026-10-09-linux-btrfs.md). Measured on the machine named in [`docs/benchmarks/`](docs/benchmarks/) — provenance, not portable claims. Thread count is derived from the tree and the path class rather than the core count: `-j 0` asks the engine to choose.

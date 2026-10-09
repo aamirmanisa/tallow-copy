@@ -92,11 +92,11 @@ rsync's checksum pass is roughly 7x faster here. The algorithms differ (`-c` use
 this reads as per-file overhead on a many-small-file tree rather than an algorithm
 difference. Recorded as measured; not explained away.
 
-**After the fix on `main` (not in `v0.1.0`).** `audit_trees` pinned its thread count to one, so
-every file was hashed on a single thread. With the count derived the same pair now measures
-**1.456 s** (median of three), against `rsync -rc --dry-run` at **0.381 s** re-measured the same
-evening - the gap narrows from ~7.4x to ~3.8x. The released `v0.1.0` still carries the serial
-version; the site and README tables quote that released pair.
+**After the fix, and released.** `audit_trees` pinned its thread count to one, so every file was
+hashed on a single thread. With the count derived the same pair measures **1.456 s** (median of
+three), against `rsync -rc --dry-run` at **0.381 s** re-measured the same evening - the gap
+narrows from ~7.4x to ~3.8x. This fix is in `v0.1.1`, and in the `tallow` CLI binary attached to
+that release; the site and README tables quote this pair.
 
 
 ## Correctness
