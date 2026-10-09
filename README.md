@@ -81,8 +81,13 @@ A same-length file whose mtime was preserved is reported as *in sync* under `siz
 | CIFS, 8 threads vs 1 | about 26% slower at 8 |
 | Large local files, 8 threads vs 1 | 581 vs 3556 MiB/s |
 | io_uring buffered, 1 thread | 2681-3765 MiB/s across 64K-16M |
+| Vs `rsync -a`, 20k small files (clone-free, both to tmpfs) | 691 vs 319 MB/s - **2.16x faster** |
+| Vs `rsync -a`, warm no-op / 1% changed+deleted | 0.052 vs 0.103 s / 0.120 vs 0.152 s |
+| Vs `rsync -a`, 4 GiB large files | 0.038 vs 5.452 s - **a clone, not throughput** |
+| Vs `rsync -rc`, hash verification of 391 MB | 2.256 vs 0.305 s - **rsync ~7x faster** |
+| Robocopy | **not measured** - Windows-only |
 
-Measured on the machine named in [`docs/benchmarks/`](docs/benchmarks/) — provenance, not portable claims. Thread count is derived from the tree and the path class rather than the core count: `-j 0` asks the engine to choose.
+Method, raw rows and the clone control: [`docs/benchmarks/results-2026-10-09-linux-btrfs.md`](docs/benchmarks/results-2026-10-09-linux-btrfs.md). Measured on the machine named in [`docs/benchmarks/`](docs/benchmarks/) — provenance, not portable claims. Thread count is derived from the tree and the path class rather than the core count: `-j 0` asks the engine to choose.
 
 ## Installation notes
 

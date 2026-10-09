@@ -332,7 +332,24 @@ Transfer.hash(path)</code></pre>
         <h2 id="benchmarks-title">Benchmarks</h2>
       </header>
 
-      <p class="section-lede">Every number here was measured on one Linux workstation and its own storage and network. They are provenance, not marketing: treat them as &ldquo;what this machine did&rdquo;, not as portable claims. The project&rsquo;s benchmark protocol explicitly forbids throughput claims against other tools until a harness produces that data, so none appear here.</p>
+      <p class="section-lede">Every number here was measured on one Linux workstation and its own storage and network. They are provenance, not marketing: treat them as &ldquo;what this machine did&rdquo;, not as portable claims. The project&rsquo;s benchmark protocol forbids throughput claims against other tools until a harness produces that data. That harness has now been run against <code>rsync</code> on Linux; the results are below. Read the clone caveat before the large-file row, because on a copy-on-write filesystem a &ldquo;copy&rdquo; is O(1) and is not a throughput figure.</p>
+
+      <h3 id="bench-vs-rsync">Versus rsync &mdash; measured</h3>
+      <p>Both tools copying the same trees on the same machine, the destination deleted and flushed before every run, median of three. Full method, every raw row and the correctness check: <a href="benchmarks/results-2026-10-09-linux-btrfs.md">measured results</a>.</p>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>Workload</th><th>Tallow Copy</th><th>rsync</th></tr></thead>
+          <tbody>
+            <tr><td>20,000 small files, 391&nbsp;MB (clone-free, both to tmpfs)</td><td>0.566&nbsp;s &mdash; 691&nbsp;MB/s</td><td>1.224&nbsp;s &mdash; 319&nbsp;MB/s</td></tr>
+            <tr><td>Warm no-op, nothing to copy</td><td>0.052&nbsp;s</td><td>0.103&nbsp;s</td></tr>
+            <tr><td>1% of files changed and 1% deleted</td><td>0.120&nbsp;s</td><td>0.152&nbsp;s</td></tr>
+            <tr><td>Hash verification, both sides re-read (391&nbsp;MB)</td><td>2.256&nbsp;s</td><td>0.305&nbsp;s</td></tr>
+            <tr><td>4&nbsp;GiB of large files (clone-assisted on btrfs)</td><td>0.038&nbsp;s</td><td>5.452&nbsp;s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Read the last row with care.</strong> On a copy-on-write filesystem the engine clones, so 4&nbsp;GiB is O(1) rather than a transfer &mdash; it beats rsync for that reason, not on throughput. The control: the same copy forced to write real bytes (<code>cp --reflink=never</code>) took 3.112&nbsp;s, 259&times; slower than the clone. Against a target that cannot clone &mdash; ext4, NTFS, a NAS over CIFS &mdash; no clone path exists.</p>
+      <p><strong>Verification is the one row rsync wins</strong>, by roughly 7&times;. Recorded as measured. <strong>Robocopy is not measured:</strong> it is Windows-only, and running it under Wine would measure Wine.</p>
 
       <h3 id="bench-smoke">Engine performance smoke (tiny dataset)</h3>
       <p>A dedicated test:</p>

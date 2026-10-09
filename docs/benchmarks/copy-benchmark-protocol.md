@@ -13,6 +13,8 @@ and none of those harnesses have ever been executed. The POSIX block under "Base
 that has actually been measured here; until a Windows run is recorded, every Windows-only gate in
 this document is **unverified**, not satisfied.
 
+**POSIX baseline executed 2026-10-09.** The rsync baseline in this document has now been run on the Linux workstation. The numbers, the reflink control that explains the large-file rows, and the correctness check are in [`results-2026-10-09-linux-btrfs.md`](results-2026-10-09-linux-btrfs.md). Robocopy and PowerShell `Copy-Item` remain **unverified**: they are Windows-only and no Windows run has been recorded.
+
 ## Benchmark Classes
 
 Run each class as its own result group. Do not combine full-copy throughput with
