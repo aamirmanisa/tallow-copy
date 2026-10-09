@@ -77,7 +77,7 @@ and symlinked parents are passed through as given.
 **F5 — The plan's own Phase 5 is untouched.** The architecture doc promises "adaptive I/O
 backends"; the plan's Phase 5 is "Scheduler And Fast IO Backends". There is no `io_uring`,
 `copy_file_range` or `FICLONE` anywhere in `src/` or `crates/` — those strings appear only in
-`apps/tallow-copy/docs/research/*`. Sparse handling (`SEEK_DATA`/`SEEK_HOLE`) *is* implemented, so
+the upstream research notes (not redistributed here). Sparse handling (`SEEK_DATA`/`SEEK_HOLE`) *is* implemented, so
 the sparse half of Phase 4 is done and the clone/range half is not.
 
 **F6 — The benchmark protocol names a harness that does not exist.**
@@ -95,7 +95,7 @@ protocol cannot be completed by any run of the engine.
 
 **F8 — The protocol is Windows-shaped while the operative environment is not.** Its datasets,
 baselines (`robocopy`, `Copy-Item`, `fastcopy`) and harness scripts are PowerShell and Windows
-paths. This workstation is Linux; the real transfer targets are an SMB/CIFS NAS and a a remote server box
+paths. This workstation is Linux; the real transfer targets are an SMB/CIFS NAS and a remote server
 over SSH. The `.ps1` scripts exist (`scripts/generate_copy_benchmark_dataset.ps1`,
 `scripts/benchmark_copy_engine.ps1`) but have never been executed here, and none of the measured
 work in this session could use them.
@@ -103,7 +103,7 @@ work in this session could use them.
 **F9 — Two gates are unreachable on the share they are most likely to be run against.** "Warm
 no-op sync ≥100x" and "no-op sync >1000x with a manifest cache" assume destination-side change
 detection works. On the CIFS mount, mtime writes are accepted and then re-stamped by the server
-within seconds (measured, recorded in the `nas-backup` skill): no mtime-based no-op can
+within seconds (measured, recorded in this project's operational notes): no mtime-based no-op can
 ever fire there, and a plain rsync push re-sends the whole tree every time. The gates are
 achievable only via a source-keyed manifest or an explicit change list. The protocol should state
 that mechanism as a precondition rather than leave it implied.
@@ -385,7 +385,7 @@ app possible at all if that is ever wanted.
 
 ## io_uring evaluation (2026-10-08)
 **Verdict: not justified for the engine's data path on the measured evidence.** The project's own
-research already set that bar - `apps/tallow-copy/docs/research/agent-09-implementation-stack-and-tallow-rust-integration.md`
+the upstream research already set that bar
 says "do not make io_uring an MVP dependency", "optimize with large buffers, batching, platform copy
 APIs, and worker scheduling **before** io_uring", and "consider io_uring backend on Linux only if
 benchmarks justify".
@@ -407,7 +407,7 @@ Reading it: the loop **plateaus at 256 KiB-1 MiB and degrades with larger buffer
 does not raise the ~3.5 GiB/s plateau - so per-operation syscall cost is not the limit, and that is the
 only cost io_uring removes. The kernel fast path is **4.2-5.8x faster** (its own measurement varied
 between 15,058 and 20,480 MiB/s across runs, against the loop's ~3.5 GiB/s plateau) precisely because
-it never enters userspace at all. The operational targets are the NAS (47 MB/s measured) and the a remote server link
+it never enters userspace at all. The operational targets are the NAS (47 MB/s measured) and the remote link
 (25 MB/s), one to two orders of magnitude below the loop's plateau, so their bottleneck is the network
 and no syscall interface changes that. The one place concurrency clearly pays is many small files
 (440 -> 868 MiB/s at 8 threads) - already available through `threads`, and it is concurrency, not

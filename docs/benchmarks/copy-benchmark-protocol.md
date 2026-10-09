@@ -8,7 +8,7 @@ verified copy.
 
 **Platform twin (added 2026-10-08).** Everything below was written for Windows: the harnesses are
 PowerShell and the baselines are Windows tools. The operational targets for this project are a
-Linux workstation, an SMB/CIFS NAS and a a remote server host over SSH, where none of those baselines run
+Linux workstation, an SMB/CIFS NAS and a remote host over SSH, where none of those baselines run
 and none of those harnesses have ever been executed. The POSIX block under "Baselines" is the part
 that has actually been measured here; until a Windows run is recorded, every Windows-only gate in
 this document is **unverified**, not satisfied.
@@ -128,7 +128,7 @@ without re-running the whole matrix):
   concurrent streams 47.2 / 45.2 / 35.1 / 38.4 MB/s - i.e. **no parallel scaling**, and four
   streams is slower than one; small files 7-11 ms each; 1000 x 64 KiB bundled into a tar archive
   2.1x faster than the same bytes file-by-file.
-- WAN, a remote server host over SSH forced-command pull, RTT 133.71 ms: 13.27 MB/s single stream;
+- WAN, a remote host over SSH forced-command pull, RTT 133.71 ms: 13.27 MB/s single stream;
   25.20 MB/s at two streams (1.90x); 25.16 MB/s at three (ceiling ~201 Mbit/s, reached with two
   lanes). Per-stream share barely drops at two lanes, then collapses at three.
 
