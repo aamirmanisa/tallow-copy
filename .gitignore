@@ -11,3 +11,9 @@ playwright-report/
 *.AppImage
 *.msi
 *.dmg
+
+# local secrets and state that must never be published
+.env
+.env.*
+*.sqlite
+*.sqlite3
