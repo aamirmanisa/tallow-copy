@@ -2456,11 +2456,21 @@ where
 
     if let Some(parent) = destination.parent() {
         fs::create_dir_all(parent).map_err(|err| {
-            io_error(
-                Some(parent.to_path_buf()),
-                format!("cannot create parent directory: {err}"),
-                true,
-            )
+            // Name the real cause. When the destination *itself* is an existing file,
+            // `create_dir_all` fails with EEXIST and "cannot create parent directory" blames a
+            // directory that is perfectly fine. No early return, so this stays valid whatever the
+            // enclosing function returns.
+            let reason = if err.kind() == std::io::ErrorKind::AlreadyExists
+                || (parent.exists() && !parent.is_dir())
+            {
+                format!(
+                    "destination path exists and is not a directory: {}",
+                    parent.display()
+                )
+            } else {
+                format!("cannot create containing directory {}: {err}", parent.display())
+            };
+            io_error(Some(parent.to_path_buf()), reason, true)
         })?;
     }
 
@@ -2692,11 +2702,21 @@ fn copy_symlink_preserving(
 
     if let Some(parent) = destination.parent() {
         fs::create_dir_all(parent).map_err(|err| {
-            io_error(
-                Some(parent.to_path_buf()),
-                format!("cannot create parent directory: {err}"),
-                true,
-            )
+            // Name the real cause. When the destination *itself* is an existing file,
+            // `create_dir_all` fails with EEXIST and "cannot create parent directory" blames a
+            // directory that is perfectly fine. No early return, so this stays valid whatever the
+            // enclosing function returns.
+            let reason = if err.kind() == std::io::ErrorKind::AlreadyExists
+                || (parent.exists() && !parent.is_dir())
+            {
+                format!(
+                    "destination path exists and is not a directory: {}",
+                    parent.display()
+                )
+            } else {
+                format!("cannot create containing directory {}: {err}", parent.display())
+            };
+            io_error(Some(parent.to_path_buf()), reason, true)
         })?;
     }
 
@@ -3539,7 +3559,10 @@ pub fn audit_trees(
     job.mode = CopyMode::Mirror;
     job.skip = skip;
     job.dry_run = true;
-    job.threads = 1;
+    // Hashing every file is the expensive part of a hash-level audit, so derive the count the
+    // same way a copy does rather than pinning one thread. See `recommended_threads_for_tree_path`:
+    // eight threads is a large win on a small-file tree and a large loss on large files or CIFS.
+    job.threads = recommended_threads_for_tree_path(source, target);
 
     let planned = plan(job)?;
     let mut audit = TreeAudit {
