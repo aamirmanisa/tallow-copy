@@ -743,7 +743,10 @@ pub enum PathClass {
 /// `fe534d42` (type `smb2`), so checking only the CIFS value classified a real SMB share as an
 /// unknown filesystem. Verified against the live mount with `stat -f`, not assumed from the
 /// mount's own `type cifs` label.
-#[cfg(target_os = "linux")]
+// Plain data, so it is declared for every target. The SMB check lives in `classify_paths`, which
+// is compiled everywhere, while `filesystem_magic_of` returns `None` off Linux. Gating this
+// constant to Linux made the whole crate fail to compile on Windows and macOS with E0425.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 const SMB_MAGIC_NUMBERS: [i64; 2] = [0xFF53_4D42, 0xFE53_4D42];
 
 /// The nearest ancestor of `path` that exists, so a destination that has not been created yet

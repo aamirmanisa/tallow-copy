@@ -28,7 +28,10 @@ jobs:
           # without both Rust targets and the SDK, and one runner is one architecture.
           - os: macos-latest
             bundles: app,dmg
-          - os: macos-13
+          # macos-13 was retired on 2025-12-04. A job on a retired label is never scheduled: it
+          # sits queued forever and holds the whole run open, so the Intel build uses its
+          # replacement. macos-15-intel is the last x86_64 image and is withdrawn in Aug 2027.
+          - os: macos-15-intel
             bundles: app,dmg
     runs-on: ${{ matrix.os }}
     steps:
