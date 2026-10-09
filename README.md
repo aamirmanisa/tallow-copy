@@ -24,9 +24,16 @@ One implementation of byte movement, content hashing and the skip/verify verdict
 ## Quickstart
 
 The CLI is Tallow's copy surface - `tallow copy <SRC> <DST>`, with `delta-sync` and
-`verify-transfer` beside it. The desktop app is a separate package, further down.
+`verify-transfer` beside it. On Linux x86_64, from the release:
 
-On Debian or Ubuntu, from the release:
+```bash
+curl -LO https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow_0.4.0_x86_64-linux-glibc2.35
+chmod +x tallow_0.4.0_x86_64-linux-glibc2.35
+mv tallow_0.4.0_x86_64-linux-glibc2.35 tallow
+tallow copy src dst
+```
+
+The desktop app is a separate package:
 
 ```bash
 sudo apt install ./tallow-copy_0.1.1_amd64.deb
@@ -38,6 +45,7 @@ CI builds and bundles every platform on each push. Signed by nobody — see [Sig
 
 | Platform | Files |
 |---|---|
+| **CLI**, Linux x86_64 | [`tallow_0.4.0_x86_64-linux-glibc2.35`](https://github.com/aamirmanisa/tallow-copy/releases/download/v0.1.1/tallow_0.4.0_x86_64-linux-glibc2.35) &mdash; the `tallow` CLI itself; glibc 2.35+, needs `liblzma5` and `libbz2-1.0` |
 | Linux x86_64 | [`tallow-copy_0.1.1_amd64.deb`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.1_amd64.AppImage`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
 | Windows x86_64 | [`tallow-copy_0.1.1_x64_en-US.msi`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · [`tallow-copy_0.1.1_x64-setup.exe`](https://github.com/aamirmanisa/tallow-copy/releases/latest) |
 | macOS Intel | [`tallow-copy_0.1.1_x64.dmg`](https://github.com/aamirmanisa/tallow-copy/releases/latest) · `.app.tar.gz` |
