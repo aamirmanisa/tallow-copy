@@ -11,7 +11,7 @@ separates *measured* from *assumed*, and plans only what remains.
 | | |
 |---|---|
 | Canonical tree | `/home/aamir/tallow-copy` |
-| Version | `0.1.4`, commit `73bdf05`, branch `main` |
+| Version | `0.1.4` — tag `v0.1.4` → `73bdf05`; `main` at `a3ba79c` |
 | Tests | **120** (104 unit · 15 policy · 1 smoke) |
 | Engine modules | `lib`, `bundle`, `journal`, `transport`, `policy`, `chunk`, `delta`, `stream`, `net_speed` |
 | Dependencies | `blake3`, `filetime`, `libc` |
@@ -151,7 +151,7 @@ Five trees exist; three report `1.1.1` while differing by ~8k lines:
 | `/home/aamir/Nixe` | 1.1.1 | 253,061 | 86 |
 | `/home/aamir/tallowsphere` | 1.1.1 | 261,019 | 85 *(missing `gama_api.tl`)* |
 | `/home/aamir/tallow-extraction-engine` | 1.1.1 | 257,856 | 89 |
-| `/home/aamir/nixe-merge-2026-10-17` | 1.1.1 | 253,061 | 89 *(not a repo)* |
+| `/home/aamir/nixe-merge-2026-10-17` | 1.1.1 | 253,061 | 89 *(worktree of Nixe, `da980e7a`)* |
 | `/home/aamir/tallow-local` | 0.4.0 | 164,397 | 87 |
 
 `github.com/aamirmanisa/Tallow-Language` is **private and empty** — zero commits — so these five
@@ -201,3 +201,16 @@ Critical path **~10 days**; P3 and P4 run in parallel after P2.
 - No end-to-end WAN advantage for the bundle until a reachable receiver exists.
 - No Tallow-only data path: no syscall primitive, no memory model, no threading primitive, and
   every `native fn` is a hole in the privacy proof.
+
+---
+
+## 9. Verification note
+
+Structural claims in this document were re-checked on `ubuntu-16gb-hel1-1` on 2026-10-19:
+repository state and tag, 120 passing tests, the nine engine modules, the dependency set, the
+pinned toolchain, the `TCB1`/`TC01` magic and the 10 ms racy window, the `transfer.tl` surface
+(121 declarations, none marked unimplemented), and every row of the language table.
+
+**Throughput figures were not re-run for this document.** They are the results of the earlier
+benchmark runs; re-measuring needs the harness and a quiet machine. Treat them as measured-once
+rather than continuously verified — which is precisely why P1 exists.
