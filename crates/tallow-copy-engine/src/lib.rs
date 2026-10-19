@@ -5088,3 +5088,13 @@ mod manifest_tests {
         assert!(verify_manifest(dir.path(), &manifest).unwrap().is_clean());
     }
 }
+
+// Tallow Copy transfer engine modules.
+pub mod bundle;
+pub mod chunk;
+pub mod delta;
+pub mod journal;
+pub mod net_speed;
+pub mod policy;
+pub mod stream;
+pub mod transport;
