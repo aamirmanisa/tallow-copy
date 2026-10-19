@@ -35,11 +35,23 @@ Every row is either measured or marked unrun. No row is inferred.
 | Rescan wall clock, 1M | ≤ 5 s | ⚠️ **PROJECTED** 4.84 s | extrapolated from 200k = 0.97 s; never measured at 1M |
 | Multi-stream scaling | beats 1 stream | ✅ 0.78 → **0.99 GB/s** | 512 MB loopback, 8 streams, byte-identical |
 | Shaped-link efficiency | ≥ 90 % of 50 Mbps | ❌ **UNRUN** | `tc netem` test never executed |
-| 1M small files over WAN | ≥ 100× rsync | ❌ **UNRUN** | the headline claim has no measurement |
+| 200k small files over WAN @ 135 ms | ≥ 100× rsync | ❌ **0.82×** | measured end-to-end: 23.95 s vs rsync 19.60 s |
 | Peak RSS, 10 GB tree | < 64 MB | ❌ **UNMEASURED** | streaming design, no instrumented run |
 | Local copy vs rsync | parity | ❌ **0.87–0.92×** | measured; we are slower, and say so |
 
 ---
+
+**G1.3 measured, 2026-10-19.** 200,000 × 1 KiB over a 134.8 ms path, byte-verified:
+
+- pack 4.2 s · transfer 6.2 s at 35.25 MB/s · unpack 13.5 s → **end-to-end 23.95 s**
+- rsync on the identical tree: **19.60 s**
+
+That is **0.82× rsync — slower, not faster.** The per-file round-trip saving is real (the
+transfer phase alone beats rsync), but packing writes the tree twice on the sender and unpacks
+serially only after the last byte lands. Over half the wall clock is unpack.
+
+The fix is to unpack while the streams are still arriving. Until that exists, the 1000× claim
+does not survive contact with the measurement — so it is withdrawn, per the rule stated above.
 
 ## 3. Architecture as built
 
@@ -196,6 +208,7 @@ Critical path **~10 days**; P3 and P4 run in parallel after P2.
 ## 8. What we will not claim
 
 - No 1000× on bulk single-file WAN — physical link cap.
+- No 1000× on small files either: measured **0.82× rsync** at 200k files over 135 ms.
 - No improvement on local disk: measured **0.87–0.92× rsync**.
 - No 1000× over WiFi — the 2.4 GHz radio caps the link at ~7 MB/s.
 - No end-to-end WAN advantage for the bundle until a reachable receiver exists.
