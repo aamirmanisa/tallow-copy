@@ -21,6 +21,9 @@ use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::{self, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
+use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+use chacha20poly1305::{XChaCha20Poly1305, XNonce};
+use zeroize::Zeroize;
 
 pub const MAGIC: &[u8; 4] = b"TCJ1";
 pub const VERSION: u16 = 2;
@@ -397,6 +400,12 @@ pub fn load(path: &Path, key: Option<&[u8; 32]>) -> io::Result<Journal> {
         ));
     }
     let flags = buf[6];
+    if flags & FLAG_ENCRYPTED != 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "journal is encrypted; load_encrypted with a key is required",
+        ));
+    }
     let mut off = 7;
     if flags & FLAG_KEYED != 0 {
         off += 4;
@@ -465,6 +474,172 @@ pub fn load(path: &Path, key: Option<&[u8; 32]>) -> io::Result<Journal> {
             hash,
         });
     }
+    Ok(Journal {
+        entries,
+        digest,
+        scanned_at_ns,
+    })
+}
+
+
+// ── encrypted journal ────────────────────────────────────────────────────────
+/// Set when the body is an XChaCha20-Poly1305 envelope instead of the bare
+/// encoding. Without the key the file reveals neither paths nor hashes.
+pub const FLAG_ENCRYPTED: u8 = 0x02;
+const NONCE_LEN: usize = 24;
+const ENVELOPE_AAD: &[u8] = b"tallow-journal-envelope-v1";
+
+/// Domain-separate the envelope key from the journal's authentication key, so a
+/// key used for one purpose can never be substituted for the other.
+fn envelope_key(master: &[u8; 32]) -> [u8; 32] {
+    blake3::derive_key("tallow journal envelope key v1", master)
+}
+
+fn decode_body(body: &[u8]) -> io::Result<(i64, Vec<Entry>)> {
+    if body.len() < 12 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "journal body truncated",
+        ));
+    }
+    let scanned_at_ns = i64::from_le_bytes(body[0..8].try_into().unwrap());
+    let count = u32::from_le_bytes(body[8..12].try_into().unwrap()) as usize;
+    let mut p = 12usize;
+    let mut entries = Vec::with_capacity(count);
+    for _ in 0..count {
+        if p + 2 > body.len() {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "entry truncated"));
+        }
+        let plen = u16::from_le_bytes(body[p..p + 2].try_into().unwrap()) as usize;
+        p += 2;
+        // trailer: size, mtime, ctime, inode (4x8) + mode (4) + hash (32)
+        if p + plen + 68 > body.len() {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "entry truncated"));
+        }
+        let path = String::from_utf8(body[p..p + plen].to_vec())
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "non-UTF-8 path"))?;
+        p += plen;
+        let size = u64::from_le_bytes(body[p..p + 8].try_into().unwrap());
+        p += 8;
+        let mtime_ns = i64::from_le_bytes(body[p..p + 8].try_into().unwrap());
+        p += 8;
+        let ctime_ns = i64::from_le_bytes(body[p..p + 8].try_into().unwrap());
+        p += 8;
+        let inode = u64::from_le_bytes(body[p..p + 8].try_into().unwrap());
+        p += 8;
+        let mode = u32::from_le_bytes(body[p..p + 4].try_into().unwrap());
+        p += 4;
+        let mut hash = [0u8; 32];
+        hash.copy_from_slice(&body[p..p + 32]);
+        p += 32;
+        entries.push(Entry {
+            path,
+            size,
+            mtime_ns,
+            ctime_ns,
+            inode,
+            mode,
+            hash,
+        });
+    }
+    Ok((scanned_at_ns, entries))
+}
+
+/// Write the journal with its body sealed. The AEAD tag is what makes a tampered
+/// journal fail closed; the nonce is fresh per write, so two saves of identical
+/// content are indistinguishable to an observer.
+pub fn save_encrypted(journal: &Journal, path: &Path, key: &[u8; 32]) -> io::Result<()> {
+    let mut body = Vec::new();
+    body.extend_from_slice(&journal.scanned_at_ns.to_le_bytes());
+    encode(&journal.entries, &mut body);
+
+    let mut nonce = [0u8; NONCE_LEN];
+    getrandom::getrandom(&mut nonce)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("entropy: {e}")))?;
+
+    let cipher = XChaCha20Poly1305::new_from_slice(&envelope_key(key))
+        .map_err(|_| io::Error::new(io::ErrorKind::Other, "bad envelope key"))?;
+    let mut ct = cipher
+        .encrypt(
+            XNonce::from_slice(&nonce),
+            Payload {
+                msg: &body,
+                aad: ENVELOPE_AAD,
+            },
+        )
+        .map_err(|_| io::Error::new(io::ErrorKind::Other, "journal encryption failed"))?;
+    body.zeroize();
+
+    let mut buf = Vec::with_capacity(7 + NONCE_LEN + 8 + ct.len());
+    buf.extend_from_slice(MAGIC);
+    buf.extend_from_slice(&VERSION.to_le_bytes());
+    buf.push(FLAG_ENCRYPTED);
+    buf.extend_from_slice(&nonce);
+    buf.extend_from_slice(&(ct.len() as u64).to_le_bytes());
+    buf.extend_from_slice(&ct);
+    ct.zeroize();
+
+    let tmp = path.with_extension("tmp");
+    let mut w = BufWriter::new(File::create(&tmp)?);
+    w.write_all(&buf)?;
+    w.flush()?;
+    drop(w);
+    fs::rename(&tmp, path)?;
+    Ok(())
+}
+
+/// Read a sealed journal. A wrong key and a corrupted file are the same failure:
+/// authentication fails and nothing is returned.
+pub fn load_encrypted(path: &Path, key: &[u8; 32]) -> io::Result<Journal> {
+    let mut buf = Vec::new();
+    File::open(path)?.read_to_end(&mut buf)?;
+    let head = 7 + NONCE_LEN + 8;
+    if buf.len() < head || &buf[0..4] != MAGIC {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "not a tallow journal",
+        ));
+    }
+    if u16::from_le_bytes([buf[4], buf[5]]) != VERSION {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unsupported journal version",
+        ));
+    }
+    if buf[6] & FLAG_ENCRYPTED == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "journal is not encrypted; use load",
+        ));
+    }
+    let nonce = &buf[7..7 + NONCE_LEN];
+    let ct_len = u64::from_le_bytes(buf[7 + NONCE_LEN..head].try_into().unwrap()) as usize;
+    let ct = &buf[head..];
+    if ct.len() != ct_len {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "encrypted journal truncated",
+        ));
+    }
+    let cipher = XChaCha20Poly1305::new_from_slice(&envelope_key(key))
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "bad envelope key"))?;
+    let mut body = cipher
+        .decrypt(
+            XNonce::from_slice(nonce),
+            Payload {
+                msg: ct,
+                aad: ENVELOPE_AAD,
+            },
+        )
+        .map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "journal authentication failed (wrong key or tampered)",
+            )
+        })?;
+    let (scanned_at_ns, entries) = decode_body(&body)?;
+    let digest = *blake3::keyed_hash(key, &body).as_bytes();
+    body.zeroize();
     Ok(Journal {
         entries,
         digest,
@@ -613,6 +788,111 @@ mod tests {
         assert!(load(&jp, None).is_err());
         assert_eq!(load(&jp, Some(&key)).unwrap().entries, j.entries);
         assert!(load(&jp, Some(&[8u8; 32])).is_err());
+        let _ = fs::remove_dir_all(&d);
+    }
+}
+
+#[cfg(test)]
+mod journal_crypto {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn tmpdir(tag: &str) -> PathBuf {
+        let n = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let d = std::env::temp_dir().join(format!("tcj-{tag}-{n}"));
+        fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    fn sample() -> Journal {
+        let mk = |p: &str, h: u8| Entry {
+            path: p.to_string(),
+            size: 4096,
+            mtime_ns: 1_700_000_000_000_000_000,
+            ctime_ns: 1_700_000_000_000_000_001,
+            inode: 42,
+            mode: 0o100644,
+            hash: [h; 32],
+        };
+        Journal {
+            entries: vec![
+                mk("SECRET-DIRECTORY-NAME/payroll-2026.xlsx", 1),
+                mk("contracts/acquisition-terms.pdf", 2),
+            ],
+            digest: [0u8; 32],
+            scanned_at_ns: 1_700_000_000_000_000_002,
+        }
+    }
+
+    #[test]
+    fn encrypted_round_trip() {
+        let d = tmpdir("rt");
+        let p = d.join("journal.bin");
+        let key = [7u8; 32];
+        let j = sample();
+        save_encrypted(&j, &p, &key).unwrap();
+        let back = load_encrypted(&p, &key).unwrap();
+        assert_eq!(back.entries.len(), j.entries.len());
+        assert_eq!(back.entries[0].path, j.entries[0].path);
+        assert_eq!(back.entries[1].hash, j.entries[1].hash);
+        assert_eq!(back.scanned_at_ns, j.scanned_at_ns);
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    /// The whole point: the on-disk bytes must not contain a path or filename.
+    #[test]
+    fn encrypted_journal_reveals_no_paths() {
+        let d = tmpdir("leak");
+        let p = d.join("journal.bin");
+        save_encrypted(&sample(), &p, &[9u8; 32]).unwrap();
+        let raw = fs::read(&p).unwrap();
+        for needle in [
+            "SECRET-DIRECTORY-NAME",
+            "payroll",
+            "contracts",
+            "acquisition",
+        ] {
+            assert!(
+                !raw.windows(needle.len()).any(|w| w == needle.as_bytes()),
+                "plaintext {needle:?} found in sealed journal"
+            );
+        }
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn wrong_key_is_rejected() {
+        let d = tmpdir("wk");
+        let p = d.join("journal.bin");
+        save_encrypted(&sample(), &p, &[1u8; 32]).unwrap();
+        assert!(load_encrypted(&p, &[2u8; 32]).is_err());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn tampered_ciphertext_is_rejected() {
+        let d = tmpdir("tamper");
+        let p = d.join("journal.bin");
+        let key = [3u8; 32];
+        save_encrypted(&sample(), &p, &key).unwrap();
+        let mut raw = fs::read(&p).unwrap();
+        let last = raw.len() - 1;
+        raw[last] ^= 0x01;
+        fs::write(&p, &raw).unwrap();
+        assert!(load_encrypted(&p, &key).is_err(), "flipped bit must fail");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn plaintext_loader_refuses_encrypted_journal() {
+        let d = tmpdir("mix");
+        let p = d.join("journal.bin");
+        save_encrypted(&sample(), &p, &[4u8; 32]).unwrap();
+        let err = load(&p, None).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
         let _ = fs::remove_dir_all(&d);
     }
 }

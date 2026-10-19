@@ -117,6 +117,13 @@ pub fn serve(listener: &TcpListener, out: &Path, streams: usize) -> std::io::Res
                 done += want as u64;
                 written.fetch_add(want as u64, Ordering::Relaxed);
             }
+            // Acknowledge what this stream actually persisted. The sender waits
+            // for this: without it, "sent" only means the bytes reached the local
+            // socket buffer, so a peer that dies mid-transfer still looks like a
+            // success. That is how a 5 MB send over a 139 ms path once reported
+            // 2,685 MB/s while the receiver held nothing.
+            sock.write_all(&done.to_le_bytes())?;
+            sock.flush()?;
             Ok(())
         }));
     }
@@ -169,6 +176,17 @@ pub fn send(peer: &str, src: &Path, streams: usize) -> std::io::Result<SendStats
                 left -= want as u64;
             }
             sock.flush()?;
+            // Wait for the receiver to confirm this range landed. Timings taken
+            // before the ack measure the local kernel buffer, not the network.
+            let mut ack = [0u8; 8];
+            sock.read_exact(&mut ack)?;
+            let acked = u64::from_le_bytes(ack);
+            if acked != len {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("receiver acknowledged {acked} of {len} bytes"),
+                ));
+            }
             Ok(len)
         }));
     }

@@ -32,6 +32,7 @@
 //! - Files are written to a temp path in the destination directory and renamed,
 //!   so an interrupted unpack never leaves a truncated file under a real name.
 
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
@@ -250,7 +251,22 @@ pub fn pack<W: Write + Seek>(root: &Path, paths: &[PathBuf], mut sink: W) -> io:
 }
 
 /// Unpack a bundle into `dest_root`, verifying every file's BLAKE3.
+/// Unpack a bundle into `dest_root`, verifying every file's BLAKE3.
 pub fn unpack<R: Read>(src: R, dest_root: &Path) -> io::Result<UnpackStats> {
+    unpack_inner(src, dest_root, None)
+}
+
+/// Unpack and append every verified file to `state`, so an interrupted transfer
+/// can resume where it stopped instead of restarting the whole tree.
+pub fn unpack_tracked<R: Read>(src: R, dest_root: &Path, state: &Path) -> io::Result<UnpackStats> {
+    unpack_inner(src, dest_root, Some(state))
+}
+
+fn unpack_inner<R: Read>(
+    src: R,
+    dest_root: &Path,
+    track: Option<&Path>,
+) -> io::Result<UnpackStats> {
     let start = std::time::Instant::now();
     let mut r = BufReader::with_capacity(READ_BUF, src);
 
@@ -343,11 +359,167 @@ pub fn unpack<R: Read>(src: R, dest_root: &Path) -> io::Result<UnpackStats> {
         apply_mode(&tmp, e.mode)?;
         fs::rename(&tmp, &dest)?;
         set_mtime(&dest, e.mtime_ns);
+        if let Some(sp) = track {
+            record_completed(sp, &e.path, e.size, e.mtime_ns, &e.hash)?;
+        }
     }
 
     Ok(UnpackStats {
         entries: entries.len(),
         payload_bytes: written,
+        seconds: start.elapsed().as_secs_f64(),
+    })
+}
+
+
+// ── resume support ───────────────────────────────────────────────────────────
+
+fn hex32(b: &[u8; 32]) -> String {
+    const H: &[u8; 16] = b"0123456789abcdef";
+    let mut s = String::with_capacity(64);
+    for x in b {
+        s.push(H[(x >> 4) as usize] as char);
+        s.push(H[(x & 0x0f) as usize] as char);
+    }
+    s
+}
+
+fn unhex32(s: &str) -> Option<[u8; 32]> {
+    if s.len() != 64 {
+        return None;
+    }
+    let b = s.as_bytes();
+    let mut out = [0u8; 32];
+    for i in 0..32 {
+        let hi = (b[2 * i] as char).to_digit(16)? as u8;
+        let lo = (b[2 * i + 1] as char).to_digit(16)? as u8;
+        out[i] = (hi << 4) | lo;
+    }
+    Some(out)
+}
+
+fn hash_file(p: &Path) -> io::Result<[u8; 32]> {
+    let mut f = File::open(p)?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buf = vec![0u8; READ_BUF];
+    loop {
+        let n = f.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(*hasher.finalize().as_bytes())
+}
+
+/// Append to the resume state. A torn final line is skipped by the reader, so an
+/// interrupted write costs one re-sent file, never a corrupt resume set.
+fn record_completed(
+    state: &Path,
+    path: &str,
+    size: u64,
+    mtime_ns: i64,
+    hash: &[u8; 32],
+) -> io::Result<()> {
+    let mut f = fs::OpenOptions::new().create(true).append(true).open(state)?;
+    writeln!(f, "{path}\t{size}\t{mtime_ns}\t{}", hex32(hash))?;
+    f.flush()?;
+    Ok(())
+}
+
+/// Read the resume state: path → content hash of files the receiver already holds
+/// and verified. Malformed lines are ignored rather than trusted.
+pub fn completed_hashes(state: &Path) -> io::Result<HashMap<String, [u8; 32]>> {
+    let mut m = HashMap::new();
+    let data = match fs::read_to_string(state) {
+        Ok(d) => d,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(m),
+        Err(e) => return Err(e),
+    };
+    for line in data.lines() {
+        let f: Vec<&str> = line.split('\t').collect();
+        if f.len() < 4 {
+            continue;
+        }
+        if let Some(h) = unhex32(f[3]) {
+            m.insert(f[0].to_string(), h);
+        }
+    }
+    Ok(m)
+}
+
+/// Pack only what the receiver does not already have.
+///
+/// Each candidate is hashed locally and compared with the receiver's recorded
+/// hash; equal means the bytes are already correct there, so it is not sent. That
+/// costs a local read per file (cheap next to a WAN write) and, unlike trusting
+/// size+mtime, cannot be fooled by a same-size edit with a restored timestamp.
+pub fn pack_missing<W: Write + Seek>(
+    root: &Path,
+    paths: &[PathBuf],
+    mut sink: W,
+    completed: &HashMap<String, [u8; 32]>,
+) -> io::Result<PackStats> {
+    let start = std::time::Instant::now();
+    let candidates = collect(root, paths)?;
+
+    let mut entries = Vec::with_capacity(candidates.len());
+    for mut e in candidates {
+        if e.kind == KIND_FILE {
+            let h = hash_file(&root.join(&e.path))?;
+            if completed.get(&e.path).map(|k| *k == h).unwrap_or(false) {
+                continue;
+            }
+            e.hash = h;
+        } else if completed.contains_key(&e.path) {
+            continue;
+        }
+        entries.push(e);
+    }
+
+    let payload_bytes: u64 = entries.iter().map(|e| e.size).sum();
+    sink.write_all(MAGIC)?;
+    sink.write_all(&VERSION.to_le_bytes())?;
+    sink.write_all(&0u16.to_le_bytes())?;
+    sink.write_all(&(entries.len() as u32).to_le_bytes())?;
+    sink.write_all(&payload_bytes.to_le_bytes())?;
+    for e in &entries {
+        write_entry(&mut sink, e)?;
+    }
+
+    let mut buf = vec![0u8; READ_BUF];
+    for e in &entries {
+        let p = root.join(&e.path);
+        if e.kind == KIND_SYMLINK {
+            let target = fs::read_link(&p)?;
+            sink.write_all(target.to_string_lossy().as_bytes())?;
+            continue;
+        }
+        let mut f = File::open(&p)?;
+        let mut hasher = blake3::Hasher::new();
+        loop {
+            let n = f.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+            sink.write_all(&buf[..n])?;
+        }
+        // The file is read twice (once to filter, once to send). If it changed in
+        // between, sending it would ship bytes that do not match the manifest, so
+        // fail instead of writing an inconsistent bundle.
+        if *hasher.finalize().as_bytes() != e.hash {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{} changed while packing", e.path),
+            ));
+        }
+    }
+    sink.flush()?;
+
+    Ok(PackStats {
+        entries: entries.len(),
+        payload_bytes,
         seconds: start.elapsed().as_secs_f64(),
     })
 }
@@ -560,5 +732,140 @@ mod tests {
         assert_eq!(us.payload_bytes, 0);
         let _ = fs::remove_dir_all(&src);
         let _ = fs::remove_dir_all(&dst);
+    }
+}
+
+#[cfg(test)]
+mod bundle_resume {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn tmpdir(tag: &str) -> PathBuf {
+        let n = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let d = std::env::temp_dir().join(format!("tcb-resume-{tag}-{n}"));
+        fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    fn make_tree(root: &Path, n: usize) {
+        for i in 0..n {
+            let p = root.join(format!("f{i}.txt"));
+            fs::write(&p, format!("contents of file {i}\n")).unwrap();
+        }
+    }
+
+    fn pack_to_vec(root: &Path, n: usize) -> Vec<u8> {
+        let paths: Vec<PathBuf> = (0..n)
+            .map(|i| root.join(format!("f{i}.txt")))
+            .collect();
+        let mut out = std::io::Cursor::new(Vec::new());
+        pack(root, &paths, &mut out).unwrap();
+        out.into_inner()
+    }
+
+    #[test]
+    fn resume_skips_everything_already_verified() {
+        let src = tmpdir("src1");
+        make_tree(&src, 3);
+        let dest = tmpdir("dst1");
+        let state = tmpdir("st1").join("resume.log");
+
+        let bundle = pack_to_vec(&src, 3);
+        let st = unpack_tracked(&bundle[..], &dest, &state).unwrap();
+        assert_eq!(st.entries, 3);
+        assert_eq!(completed_hashes(&state).unwrap().len(), 3);
+
+        // Nothing changed on the receiver: the second pack must carry no entries.
+        let done = completed_hashes(&state).unwrap();
+        let paths: Vec<PathBuf> = (0..3).map(|i| src.join(format!("f{i}.txt"))).collect();
+        let mut out = std::io::Cursor::new(Vec::new());
+        let st2 = pack_missing(&src, &paths, &mut out, &done).unwrap();
+        assert_eq!(st2.entries, 0, "verified files must not be re-sent");
+        assert_eq!(st2.payload_bytes, 0);
+
+        // And that empty bundle must be a valid, unpackable bundle.
+        let dest2 = tmpdir("dst1b");
+        let st3 = unpack(&out.into_inner()[..], &dest2).unwrap();
+        assert_eq!(st3.entries, 0);
+
+        let _ = fs::remove_dir_all(&src);
+        let _ = fs::remove_dir_all(&dest);
+    }
+
+    #[test]
+    fn resume_resends_only_the_missing_file() {
+        let src = tmpdir("src2");
+        make_tree(&src, 3);
+        let dest = tmpdir("dst2");
+        let state = tmpdir("st2").join("resume.log");
+
+        let bundle = pack_to_vec(&src, 3);
+        unpack_tracked(&bundle[..], &dest, &state).unwrap();
+        let done = completed_hashes(&state).unwrap();
+
+        // Receiver loses one file — exactly what an interrupted transfer leaves.
+        fs::remove_file(dest.join("f1.txt")).unwrap();
+
+        // Its hash is still recorded, so drop that one entry to simulate the
+        // receiver reporting honestly what it still holds.
+        let mut done = done;
+        done.remove("f1.txt");
+
+        let paths: Vec<PathBuf> = (0..3).map(|i| src.join(format!("f{i}.txt"))).collect();
+        let mut out = std::io::Cursor::new(Vec::new());
+        let st = pack_missing(&src, &paths, &mut out, &done).unwrap();
+        assert_eq!(st.entries, 1, "only the missing file should be sent");
+
+        unpack(&out.into_inner()[..], &dest).unwrap();
+        assert_eq!(
+            fs::read_to_string(dest.join("f1.txt")).unwrap(),
+            fs::read_to_string(src.join("f1.txt")).unwrap()
+        );
+
+        let _ = fs::remove_dir_all(&src);
+        let _ = fs::remove_dir_all(&dest);
+    }
+
+    #[test]
+    fn changed_content_is_resent_even_with_same_size_and_mtime() {
+        let src = tmpdir("src3");
+        make_tree(&src, 1);
+        let dest = tmpdir("dst3");
+        let state = tmpdir("st3").join("resume.log");
+
+        let bundle = pack_to_vec(&src, 1);
+        unpack_tracked(&bundle[..], &dest, &state).unwrap();
+        let done = completed_hashes(&state).unwrap();
+
+        // Same length, same mtime, different bytes: a size+mtime check would skip it.
+        let f = src.join("f0.txt");
+        let md = fs::metadata(&f).unwrap();
+        let mtime = filetime::FileTime::from_last_modification_time(&md);
+        let original = fs::read(&f).unwrap();
+        let mut flipped = original.clone();
+        let last = flipped.len() - 2;
+        flipped[last] ^= 0x01;
+        fs::write(&f, &flipped).unwrap();
+        filetime::set_file_mtime(&f, mtime).unwrap();
+
+        let paths = vec![f.clone()];
+        let mut out = std::io::Cursor::new(Vec::new());
+        let st = pack_missing(&src, &paths, &mut out, &done).unwrap();
+        assert_eq!(st.entries, 1, "same-size, restored-mtime edit must not be skipped");
+
+        let _ = fs::remove_dir_all(&src);
+        let _ = fs::remove_dir_all(&dest);
+    }
+
+    #[test]
+    fn torn_state_line_is_ignored() {
+        let d = tmpdir("torn");
+        let state = d.join("resume.log");
+        fs::write(&state, "a.txt\t1\t2\tdeadbeef\n").unwrap(); // malformed hash
+        assert!(completed_hashes(&state).unwrap().is_empty());
+        let _ = fs::remove_dir_all(&d);
     }
 }

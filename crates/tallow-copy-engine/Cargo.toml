@@ -7,6 +7,13 @@ license = "MIT"
 
 [dependencies]
 blake3 = "1.8"
+# XChaCha20-Poly1305 seals the journal body so paths, sizes and per-file
+# hashes are unreadable at rest. 24-byte nonce: no counter state to get wrong.
+chacha20poly1305 = "0.10"
+# Entropy for the envelope nonce, cross-platform, no runtime.
+getrandom = "0.2"
+# Wipes key material and plaintext buffers instead of leaving them to the allocator.
+zeroize = "1"
 filetime = "0.2"
 # SEEK_DATA/SEEK_HOLE for hole-preserving copies on filesystems whose kernel copy path
 # materialises holes (measured on NTFS via ntfs-3g).
