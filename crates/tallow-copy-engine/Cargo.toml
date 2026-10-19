@@ -1,6 +1,6 @@
 [package]
 name = "tallow-copy-engine"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "Standalone planning and execution engine for Tallow Copy"
 license = "MIT"

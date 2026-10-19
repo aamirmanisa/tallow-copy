@@ -1,0 +1,5 @@
+[toolchain]
+# Pin the compiler so a fresh clone builds the same binary everywhere.
+# 1.98.1 is the compiler the v0.1.x releases were built and tested with; bump it
+# as a deliberate, reviewed change rather than inheriting whatever is default.
+channel = "1.98.1"

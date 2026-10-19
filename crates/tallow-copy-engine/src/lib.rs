@@ -4879,6 +4879,13 @@ mod tests {
     }
     #[test]
     fn strict_stops_at_the_first_failure_while_best_effort_finishes_the_tree() {
+        // A mode-000 file is unreadable to a normal user but readable to root, so this
+        // test cannot observe a permission failure when the runner is root — which most
+        // CI containers are. Skip rather than assert something the environment forbids.
+        if unsafe { libc::geteuid() } == 0 {
+            eprintln!("skipping: running as root, so a mode-000 file is still readable");
+            return;
+        }
         // `ErrorPolicy` was declared, settable and never read: the engine behaved as BestEffort no
         // matter what a caller asked for, including its own default of Strict. These pin both halves
         // of the contract the enum now documents.
